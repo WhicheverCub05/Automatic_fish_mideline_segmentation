@@ -12,9 +12,6 @@ plt.show()
 
 # implementation of growth algorithm
 
-
-
-
 midline = [[0, 2.7, 1.0], [0.1, 3.0, 0.0], [0.2, 2.7, -1.0]]
 
 segmentBeginning = [0, 0]
@@ -55,3 +52,20 @@ calculateSegmentError(segmentEnd, segmentBeginning, midline):
     b = math.sqrt((segmentEnd-segmentBeginning)**2 + (segmentEnd - segmentBeginning)**2)
     
   return a/b
+  
+  
+# implementation of equal segments
+
+def createEqualSegments(segmentCount):
+  segmentLength = 1/segmentCount
+  for i in segments:
+    segmentEnd = segmentBeginning + i*segmentLength
+    Joints[i] = segmentEnd 
+    
+
+# create segments of diminishing size but add up to 1
+
+def createDiminishingSegments(segmentCount):
+  
+  
+    
