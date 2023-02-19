@@ -6,7 +6,7 @@ import pandas as pd
 
 # implementation of growth algorithm
 
-errorThreshold = 0.1
+error_threshold = 0.22
 
 
 # get data from every other line for now
@@ -28,15 +28,25 @@ def load_midline_data(location):
     return midline
 
 
-def plot_midline(midline):
-    for f in range(len(midline[0])):
-        x = []
-        y = []
-        for s in range(200):
-            # plt.plot(midline[0][0][i])
-            x.append(midline[s][f][0])
-            y.append(midline[s][f][1])
-        plt.plot(x, y)
+def plot_midline(midline, *columns):
+
+    if columns:
+        for c in columns:
+            x = []
+            y = []
+            for s in range(len(midline)):
+                x.append(midline[s][c][0])
+                y.append(midline[s][c][1])
+            plt.plot(x, y)
+
+    else:
+        for c in range(len(midline[0])):
+            x = []
+            y = []
+            for s in range(len(midline)):
+                x.append(midline[s][c][0])
+                y.append(midline[s][c][1])
+            plt.plot(x, y)
 
     plt.xlabel("x")
     plt.ylabel("y")
@@ -58,7 +68,7 @@ def generate_segments(midline):
     while increments < len(midline):  # number of rows
         error = 0
 
-        for f in range(len(midline[0])):  # number of columns
+        for f in range(3):  # len(midline[0]) all columns
 
             segment_beginning[0] = midline[joints[len(joints) - 1][2]][f][0]
             segment_beginning[1] = midline[joints[len(joints) - 1][2]][f][1]
@@ -66,8 +76,8 @@ def generate_segments(midline):
             segment_end[0] = midline[increments][f][0]
             segment_end[1] = midline[increments][f][1]
 
-            a = abs((segment_end[1] - segment_beginning[1]) * midline[increments][f][0] - (
-                        segment_end[0] - segment_beginning[0])
+            a = abs((segment_end[1] - segment_beginning[1]) * midline[increments][f][0]
+                    - (segment_end[0] - segment_beginning[0])
                     * midline[increments][f][1] + segment_beginning[0] * segment_end[1] - segment_end[0] *
                     segment_beginning[1])
             b = math.sqrt((segment_end[0] - segment_beginning[0])
@@ -76,12 +86,14 @@ def generate_segments(midline):
             if a != 0.0 or b != 0.0:
                 error += (a / b) / 100
 
-        error /= len(midline[0])
+        error /= 3
+        # error /= len(midline[0])
 
-        if error < errorThreshold:
+        if error < error_threshold:
             increments += 1
+            print("ye: ", increments, " error: ", error)
 
-        elif error >= errorThreshold:
+        elif error >= error_threshold:
             increments -= 1
 
             if increments <= joints[len(joints) - 1][2]:
@@ -91,8 +103,6 @@ def generate_segments(midline):
                 joints.append([midline[increments][0][0],
                                midline[increments][0][1], increments])
                 print("Adding joint: ", joints[len(joints) - 1])
-
-            print("Error: ", error)
 
         else:
             print("Houston, we have a problem")
@@ -137,9 +147,9 @@ def main():
     print("size of joints = ", len(joints), ", Joints: ", joints)
 
     for j in range(len(joints)):
-        plt.plot(joints[j])
+        plt.scatter(joints[j][0], joints[j][1], color='green')
 
-    plt.show()
+    plot_midline(fish_midline, 0)
 
     plt.show()
 
