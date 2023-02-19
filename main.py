@@ -8,32 +8,27 @@ import pandas as pd
 
 errorThreshold = 0.1
 
+
 # get data from every other line for now
-def loadMidlineData(fileName):
-    filePath = "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and Ted/midlines/"
-    location = filePath + fileName
+def load_midline_data(location):
+    file_data = pd.read_excel(location)
+    dimensions = file_data.shape
+    print("shape: ", dimensions)
+    
+    midline = [[[0 for _ in range(2)] for _ in range(
+        int(dimensions[1] / 2))] for _ in range(dimensions[0])]
 
-    fileData = pd.read_excel(location)
-
-    dimentions = fileData.shape
-
-    print("shape: ", dimentions)
-
-    midline = [[[0 for d in range(2)] for x in range(
-        int(dimentions[1]/2))] for y in range(dimentions[0])]
-
-    for column in range(0, dimentions[1], 2):
-        for row in range(dimentions[0]):
-            x = fileData.iat[row, column]
-            y = fileData.iat[row, column+1]
-            midline[row][int(column/2)][0] = x
-            midline[row][int(column/2)][1] = y
+    for column in range(0, dimensions[1], 2):
+        for row in range(dimensions[0]):
+            x = file_data.iat[row, column]
+            y = file_data.iat[row, column + 1]
+            midline[row][int(column / 2)][0] = x
+            midline[row][int(column / 2)][1] = y
 
     return midline
 
 
-def plotOGFishdata(midline):
-
+def plot_midline(midline):
     for f in range(len(midline[0])):
         x = []
         y = []
@@ -49,36 +44,37 @@ def plotOGFishdata(midline):
     plt.show()
 
 
-def generateSegments(length, midline):
-    joints = [[0 for x in range(3)] for y in range(0)]
-    joints.append([0.0, 0.0, 0])    # contains x, y, and increment
+def generate_segments(midline):
+    joints = [[0 for _ in range(3)] for _ in range(0)]
+    joints.append([0.0, 0.0, 0])  # contains x, y, and increment
 
     frames = len(midline[0])
     print("Len midline: ", frames)
 
-    segmentBeginning = [0, 0]
-    segmentEnd = [0, 0]
+    segment_beginning = [0, 0]
+    segment_end = [0, 0]
     increments = 0
-    error = 0
 
-    while increments < len(midline):    # number of rows
+    while increments < len(midline):  # number of rows
         error = 0
 
-        for f in range(len(midline[0])):    # number of columns
+        for f in range(len(midline[0])):  # number of columns
 
-            segmentBeginning[0] = midline[joints[len(joints)-1][2]][f][0]
-            segmentBeginning[1] = midline[joints[len(joints)-1][2]][f][1]
+            segment_beginning[0] = midline[joints[len(joints) - 1][2]][f][0]
+            segment_beginning[1] = midline[joints[len(joints) - 1][2]][f][1]
 
-            segmentEnd[0] = midline[increments][f][0]
-            segmentEnd[1] = midline[increments][f][1]
+            segment_end[0] = midline[increments][f][0]
+            segment_end[1] = midline[increments][f][1]
 
-            a = abs((segmentEnd[1]-segmentBeginning[1]) * midline[increments][f][0] - (segmentEnd[0]-segmentBeginning[0])
-                    * midline[increments][f][1] + segmentBeginning[0] * segmentEnd[1] - segmentEnd[0] * segmentBeginning[1])
-            b = math.sqrt((segmentEnd[0]-segmentBeginning[0])
-                            ** 2 + (segmentEnd[1] - segmentBeginning[1])**2)
+            a = abs((segment_end[1] - segment_beginning[1]) * midline[increments][f][0] - (
+                        segment_end[0] - segment_beginning[0])
+                    * midline[increments][f][1] + segment_beginning[0] * segment_end[1] - segment_end[0] *
+                    segment_beginning[1])
+            b = math.sqrt((segment_end[0] - segment_beginning[0])
+                          ** 2 + (segment_end[1] - segment_beginning[1]) ** 2)
 
-            if (a != 0.0 or b != 0.0):
-                error += (a/b)/100
+            if a != 0.0 or b != 0.0:
+                error += (a / b) / 100
 
         error /= len(midline[0])
 
@@ -88,13 +84,13 @@ def generateSegments(length, midline):
         elif error >= errorThreshold:
             increments -= 1
 
-            if increments <= joints[len(joints)-1][2]:
+            if increments <= joints[len(joints) - 1][2]:
                 print("stuck on increment: ", increments)
                 break
             else:
                 joints.append([midline[increments][0][0],
-                                midline[increments][0][1], increments])
-                print("Adding joint: ", joints[len(joints)-1])
+                               midline[increments][0][1], increments])
+                print("Adding joint: ", joints[len(joints) - 1])
 
             print("Error: ", error)
 
@@ -105,11 +101,11 @@ def generateSegments(length, midline):
 
 
 # implementation of equally divided segments
-def createEqualSegments(segmentCount, midline, frame):
-    joints = [[0 for x in range(3)] for y in range(0)]
+def create_equal_segments(segment_count, midline, frame):
+    joints = [[0 for _ in range(3)] for _ in range(0)]
 
-    for i in segmentCount:
-        increment = int((i/segmentCount)*len(midline))
+    for i in segment_count:
+        increment = int((i / segment_count) * len(midline))
         x = midline[increment][frame][0]
         y = midline[increment][frame][1]
         joints.append([x, y, increment])
@@ -117,23 +113,24 @@ def createEqualSegments(segmentCount, midline, frame):
 
 
 # create segments of diminishing size but add up to 1
-def createDiminishingSegments(segmentCount, length):
-    joints = [[0 for x in range(3)] for y in range(0)]
-    segmentLength = length
-    for i in range(segmentCount):
-        segmentLength /= 2
-        joints.append(segmentLength)
+def create_diminishing_segments(segment_count, length):
+    joints = [[0 for _ in range(3)] for _ in range(0)]
+    segment_length = length
+    for i in range(segment_count):
+        segment_length /= 2
+        joints.append(segment_length)
 
     return joints
 
 
 def main():
-    fishMidline = loadMidlineData(
-        "Acipenser_brevirostrum.Conte.102cm.350BL.s01.avi_CURVES.xls")
+    # file_path = "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and Ted/midlines/"
+    file_path = r"C:\Users\Which\Desktop\uni\Y3\Main_assignment\Data\Sturgeon from Elsa and Ted\midlines/"
+    file_name = "Acipenser_brevirostrum.Conte.102cm.350BL.s01.avi_CURVES.xls"
 
-    length = 0.102
+    fish_midline = load_midline_data(file_path + file_name)
 
-    joints = generateSegments(length, fishMidline)
+    joints = generate_segments(fish_midline)
 
     print("==========================")
 
