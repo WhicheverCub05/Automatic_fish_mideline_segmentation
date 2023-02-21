@@ -15,7 +15,7 @@ def load_midline_data(location):
     file_data = pd.read_excel(location)
     dimensions = file_data.shape
     print("shape: ", dimensions)
-    
+
     midline = [[[0 for _ in range(2)] for _ in range(
         int(dimensions[1] / 2))] for _ in range(dimensions[0])]
 
@@ -30,7 +30,6 @@ def load_midline_data(location):
 
 
 def plot_midline(midline, *columns):
-
     if columns:
         for c in columns:
             x = []
@@ -74,7 +73,7 @@ def generate_segments(midline):
             segment_end[0] = midline[increments][f][0]
             segment_end[1] = midline[increments][f][1]
 
-            for i in range(joints[len(joints)-1][2], increments, 1):
+            for i in range(joints[len(joints) - 1][2], increments, 1):
                 a = abs((segment_end[1] - segment_beginning[1]) * midline[i][f][0]
                         - (segment_end[0] - segment_beginning[0])
                         * midline[i][f][1] + segment_beginning[0] * segment_end[1] - segment_end[0] *
@@ -82,8 +81,8 @@ def generate_segments(midline):
                 b = math.sqrt((segment_end[0] - segment_beginning[0])
                               ** 2 + (segment_end[1] - segment_beginning[1]) ** 2)
 
-                if error < abs(a/b)/100 and (a != 0.0 and b != 0.0):
-                    error = abs(a/b)/100
+                if error < abs(a / b) / 100 and (a != 0.0 and b != 0.0):
+                    error = abs(a / b) / 100
 
                 plt.scatter(i, error)
 
@@ -134,7 +133,7 @@ def create_diminishing_segments(segment_count, midline, frame):
         y = midline[increment][frame][1]
         joints.append([x, y, increment])
         increment += int(length / 2)
-        length = int(length/2)
+        length = int(length / 2)
         print("increment: ", increment)
     return joints
 
@@ -157,31 +156,52 @@ def math_test_bench():
 
     print("joints: ", joints)
 
-    Sb = data[0]
-    Se = data[2]
-    Mp = data[1]
+    start = 0
+    end = 4
+
+    Sb = data[start]
+    Se = data[end]
+
+    intersection = [0, 0]
+
+    y1 = Sb[1]
+    y2 = Se[1]
+
+    x1 = Sb[0]
+    x2 = Se[0]
+
+    print("y1:", y1, " y2:", y2, " x1:", x1, " x2:", x2)
+    gr = (y2 - y1) / (x2 - x1)
+
+    c = y1 - (gr * x1)
 
     x = np.linspace(0, 4, 100)
-    y = (1.0625) * x + 0.25625
-    plt.plot(x, y, '-r', label='y=2x+1')
+    y = (gr * x) + c
+    plt.plot(x, y, '-r')
 
-    xm = np.linspace(0, 4, 100)
-    ym = (-1 / 1.0625) * x + 3.1
-    plt.plot(x, ym, '-b', label='y=2x+1')
+    # iterate from Sb index to Se index, incrementing Mp index
+    for i in range(start+1, end, 1):
+        Mp = data[i]
 
-    intersection = find_intersections(Se, Sb, Mp)
+        cm = Mp[1] - ((-1/gr) * Mp[0])
+        # xm = np.linspace(0, 4, 100)
+        ym = ((-1 / gr) * x) + cm
+        plt.plot(x, ym, '-b')
 
-    print("Mp0: ", Mp[0])
+        intersection = find_intersections(Se, Sb, Mp)
 
-    error = abs(np.sqrt((intersection[0] - Mp[0]) + (intersection[1] - Mp[1])))
+        print("Mp0: ", Mp[0])
 
-    print("error: ", error)
+        error = abs(np.sqrt((intersection[0] - Mp[0]) + (intersection[1] - Mp[1])))
 
-    print("Sb: ", Sb, " Se: ", Se, "intersection: ", intersection)
+        print("error: ", error)
 
-    plt.scatter(intersection[0], intersection[1])
+        print("Sb: ", Sb, " Se: ", Se, "intersection: ", intersection)
+
+        plt.scatter(intersection[0], intersection[1])
 
     plt.show()
+
 
 def find_intersections(Se, Sb, Mp):
     gradient = (Se[1] - Sb[1]) / (Se[0] - Sb[0])
@@ -199,8 +219,6 @@ def find_intersections(Se, Sb, Mp):
     return [x, y]
 
 
-
-
 def main():
     file_path = "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and Ted/midlines/"
     # file_path = r"C:\Users\Which\Desktop\uni\Y3\Main_assignment\Data\Sturgeon from Elsa and Ted\midlines/"
@@ -214,14 +232,18 @@ def main():
 
     # joints = create_diminishing_segments(10, fish_midline, 0)
 
+    math_test_bench()
+
+    """
     for i in range(len(fish_midline[0])):
         joints = create_diminishing_segments(10, fish_midline, i)
         for j in range(len(joints)):
             plt.scatter(joints[j][0], joints[j][1], color='green')
+    """
 
     print("==========================")
 
-    print("number of joints = ", len(joints), ", Joints: ", joints)
+    # print("number of joints = ", len(joints), ", Joints: ", joints)
 
     plot_midline(fish_midline)
 
