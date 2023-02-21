@@ -7,7 +7,7 @@ import numpy as np
 
 # implementation of growth algorithm
 
-error_threshold = 0.18
+error_threshold = 4
 
 
 # get data from every other line for now
@@ -183,41 +183,86 @@ def math_test_bench():
     for i in range(start+1, end, 1):
         Mp = data[i]
 
-        cm = Mp[1] - ((-1/gr) * Mp[0])
-        # xm = np.linspace(0, 4, 100)
-        ym = ((-1 / gr) * x) + cm
+        ym = ((-1 / gr) * x) + Mp[1] - ((-1/gr) * Mp[0])
+
         plt.plot(x, ym, '-b')
 
-        intersection = find_intersections(Se, Sb, Mp)
+        error = find_error(Se, Sb, Mp)
 
-        print("Mp0: ", Mp[0])
-
-        error = abs(np.sqrt((intersection[0] - Mp[0]) + (intersection[1] - Mp[1])))
-
-        print("error: ", error)
-
-        print("Sb: ", Sb, " Se: ", Se, "intersection: ", intersection)
-
-        plt.scatter(intersection[0], intersection[1])
+        # error is the distance between the two points
 
     plt.show()
 
 
-def find_intersections(Se, Sb, Mp):
+def find_error(Se, Sb, Mp):
     gradient = (Se[1] - Sb[1]) / (Se[0] - Sb[0])
-    print("gradient: ", gradient)
-    line_c = Se[1] - (gradient * Se[0])
-    print("line_c", line_c)
+    c = Se[1] - (gradient * Se[0])
 
-    gradient_per = -1 / gradient
-    print("gradient_per", gradient_per)
-    per_c = Mp[1] - (gradient_per * Mp[0])
-    print("per_c", per_c)
+    perpendicular_gradient = -1 / gradient
+    perpendicular_c = Mp[1] - (perpendicular_gradient * Mp[0])
 
-    x = abs((line_c - per_c) / (gradient - gradient_per))
-    y = (gradient * x) + line_c
-    return [x, y]
+    x = abs((c - perpendicular_c) / (gradient - perpendicular_gradient))
+    y = (gradient * x) + c
 
+    error = abs(np.sqrt((x - Mp[0]) ** 2 + (y - Mp[1]) ** 2))
+
+    # print("Sb: ", Sb, " Se: ", Se, "Mp: ", Mp, "intersection x:", x, "y:", y, " error: ", error)
+
+    # plt.scatter(x, y)
+
+    return error
+
+
+def test_gen(midline):
+    joints = [[0 for _ in range(3)] for _ in range(0)]
+    joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
+
+    segment_beginning = [0, 0]
+    segment_end = [0, 0]
+    increments = 2  # start at 2 as first increment is going to have 0 error
+
+    while increments < len(midline):
+        total_error = 0
+
+        for f in range(len(midline[0])):
+            frame_error = 0
+
+            segment_beginning[0] = midline[joints[len(joints) - 1][2]][f][0]
+            segment_beginning[1] = midline[joints[len(joints) - 1][2]][f][1]
+
+            segment_end[0] = midline[increments][f][0]
+            segment_end[1] = midline[increments][f][1]
+
+            for i in range(joints[len(joints)-1][2], increments, 1):
+                tmp_error = find_error(segment_end, segment_beginning, midline[i][f])
+
+                if frame_error < tmp_error:
+                    frame_error = tmp_error
+
+            total_error += frame_error
+
+        total_error /= 3  # total frames
+
+        if total_error < error_threshold:
+            # print("ye: ", increments, " f: ", f, " error: ", total_error)
+            increments += 1
+
+        elif total_error >= error_threshold:
+            increments -= 1
+
+            if increments <= joints[len(joints) - 1][2]:
+                print("stuck on increment: ", increments, "error: ", total_error, "Sb: ", segment_beginning,
+                      "Se: ", segment_end)
+                break
+            else:
+                joints.append([midline[increments][0][0],
+                               midline[increments][0][1], increments])
+                print("f: ", f, " Adding joint: ", joints[len(joints) - 1])
+
+        else:
+            print("Houston, we have a problem")
+
+    return joints
 
 def main():
     file_path = "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and Ted/midlines/"
@@ -232,18 +277,15 @@ def main():
 
     # joints = create_diminishing_segments(10, fish_midline, 0)
 
-    math_test_bench()
+    joints = test_gen(fish_midline)
 
-    """
     for i in range(len(fish_midline[0])):
-        joints = create_diminishing_segments(10, fish_midline, i)
         for j in range(len(joints)):
-            plt.scatter(joints[j][0], joints[j][1], color='green')
-    """
+            plt.scatter(fish_midline[joints[j][2]][i][0], fish_midline[joints[j][2]][i][1], color='green')
 
     print("==========================")
 
-    # print("number of joints = ", len(joints), ", Joints: ", joints)
+    print("number of joints = ", len(joints), ", Joints: ", joints)
 
     plot_midline(fish_midline)
 
