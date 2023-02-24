@@ -284,7 +284,7 @@ def test_gen_divide_and_conquer(midline):
 
         joints.append([midline[avg_joint][0][0], midline[avg_joint][0][1], avg_joint])
 
-        print("Avg:", avg_joint, " appended:", joints[len(joints)-1])
+        print("Adding:", joints[len(joints)-1])
 
         if (avg_end_error / len(midline[0])) < error_threshold:
             print("avg_end_error:", avg_end_error / len(midline[0]), " avg_joint:", avg_joint)
@@ -358,7 +358,7 @@ def main():
 
     joints = test_gen(fish_midline)
 
-    # joints = test_gen_divide_and_conquer(fish_midline)
+
 
     plot_joints = [6, 10, 12]
 
@@ -366,6 +366,14 @@ def main():
         for j in range(len(joints)):
             plt.scatter(fish_midline[joints[j][2]][plot_joints[i]][0],
                         fish_midline[joints[j][2]][plot_joints[i]][1], color='green')
+
+    joints = test_gen_divide_and_conquer(fish_midline)
+
+    for i in range(len(plot_joints)):  # all: fish_midline[0])
+        for j in range(len(joints)):
+            plt.scatter(fish_midline[joints[j][2]][plot_joints[i]][0],
+                        fish_midline[joints[j][2]][plot_joints[i]][1], color='red')
+
 
     print("==========================")
 
