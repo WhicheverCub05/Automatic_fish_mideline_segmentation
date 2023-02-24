@@ -16,15 +16,14 @@ def load_midline_data(location):
     dimensions = file_data.shape
     print("shape: ", dimensions)
 
-    midline = [[[0 for _ in range(2)] for _ in range(
-        int(dimensions[1] / 2))] for _ in range(dimensions[0])]
+    midline = [[[0 for _ in range(2)] for _ in range(dimensions[1] // 2)] for _ in range(dimensions[0])]
 
     for column in range(0, dimensions[1], 2):
         for row in range(dimensions[0]):
             x = file_data.iat[row, column]
             y = file_data.iat[row, column + 1]
-            midline[row][int(column / 2)][0] = x
-            midline[row][int(column / 2)][1] = y
+            midline[row][column // 2][0] = x
+            midline[row][column // 2][1] = y
 
     return midline
 
@@ -116,7 +115,7 @@ def create_equal_segments(segment_count, midline, frame):
     joints = [[0 for _ in range(3)] for _ in range(0)]
 
     for i in range(segment_count):
-        increment = int((i / segment_count) * len(midline))
+        increment = (i // segment_count) * len(midline)
         x = midline[increment][frame][0]
         y = midline[increment][frame][1]
         joints.append([x, y, increment])
@@ -132,8 +131,8 @@ def create_diminishing_segments(segment_count, midline, frame):
         x = midline[increment][frame][0]
         y = midline[increment][frame][1]
         joints.append([x, y, increment])
-        increment += int(length / 2)
-        length = int(length / 2)
+        increment += length // 2
+        length = length // 2
         print("increment: ", increment)
     return joints
 
@@ -215,14 +214,12 @@ def find_error(Se, Sb, Mp):
 
 # another option - for each joint, generate segments for 1 frame. try segment on other frames and reduce size as needed
 
-# optimises the generation method by using binary search
+# optimises the generation method by using greedy binary search
 def test_gen_divide_and_conquer(midline):
     all_joints = [[[0 for _ in range(3)] for _ in range(len(midline[0]))] for _ in range(200)]
 
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
-
-    avg_joint = 0
 
     segment_beginning = [0, 0, 0]  # x, y, midline row index
     segment_end = [0, 0, 0]
@@ -232,7 +229,8 @@ def test_gen_divide_and_conquer(midline):
     while not completed:
 
         tmp_joints = [[0 for _ in range(3)] for _ in range(0)]
-
+        avg_joint = 0
+        avg_end_error = 0
         for f in range(len(midline[0])):
 
             segment_beginning[0] = midline[joints[len(joints) - 1][2]][f][0]
@@ -243,41 +241,54 @@ def test_gen_divide_and_conquer(midline):
             segment_end[1] = midline[len(midline)-1][f][1]
             segment_end[2] = len(midline)-1
 
-            midline_range = segment_end[2] - segment_beginning[2]
+            start = segment_beginning[2]
+            end = len(midline) - 1
+
             divisions = 1
 
             segment_built = False
 
             while not segment_built:
-
-                error_index = int((segment_beginning[2] + segment_end[2])/2)
+                error_index = (segment_end[2] + joints[len(joints)-1][2]) // 2
                 error = find_error(segment_end, segment_beginning, midline[error_index][f])
 
+                mid = (start + end) // 2
+
+                if end <= start:
+                    segment_built = True
+                    tmp_joints.append(segment_end)
+                    avg_joint += segment_end[2]
+                    # print("frame:", f, " total divisions:", divisions, " Joint:", segment_end, " error:", error)
+                
+                if end == len(midline)-1:
+                    avg_end_error += error
+                
                 if error >= error_threshold:
-                    segment_end[2] -= (midline_range / 2 ** divisions)
+                    end = mid - 1
+                    segment_end[2] = end  # was int(midline_range / 2 ** divisions)
+                    segment_end[1] = midline[segment_end[2]][f][1]
+                    segment_end[0] = midline[segment_end[2]][f][0]
                     divisions += 1
 
                 elif error < error_threshold:
-                    segment_end[2] += (midline_range / 2 ** divisions)
-
-                if segment_end[2] - joints[(len(joints)-1)][2] <= 1:
-                    segment_built = True
-                    tmp_joints.append(segment_end)
+                    start = mid + 1
+                    if start < len(midline):
+                        segment_end[2] = start  # was int(midline_range / 2 ** divisions)
+                        segment_end[1] = midline[segment_end[2]][f][1]
+                        segment_end[0] = midline[segment_end[2]][f][0]
+                        divisions += 1
 
         all_joints.append(tmp_joints)
 
-        for j in range(len(tmp_joints)):
-            avg_joint += tmp_joints[j][2]
-
-        avg_joint = int(avg_joint/len(tmp_joints))
+        avg_joint = avg_joint // len(tmp_joints)
 
         joints.append([midline[avg_joint][0][0], midline[avg_joint][0][1], avg_joint])
 
         print("Avg:", avg_joint, " appended:", joints[len(joints)-1])
 
-        if find_error(segment_beginning, segment_end, midline[segment_end[2]-segment_beginning[2]][14]) < error_threshold:  # case for the while loop to stop
+        if (avg_end_error / len(midline[0])) < error_threshold:
+            print("avg_end_error:", avg_end_error / len(midline[0]), " avg_joint:", avg_joint)
             completed = True
-            break
 
     return joints
 
@@ -345,9 +356,9 @@ def main():
 
     # joints = create_diminishing_segments(10, fish_midline, 0)
 
-    # joints = test_gen(fish_midline)
+    joints = test_gen(fish_midline)
 
-    joints = test_gen_divide_and_conquer(fish_midline)
+    # joints = test_gen_divide_and_conquer(fish_midline)
 
     plot_joints = [6, 10, 12]
 
