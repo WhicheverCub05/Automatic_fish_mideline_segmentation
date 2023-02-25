@@ -111,14 +111,19 @@ def generate_segments(midline):
 
 
 # implementation of equally divided segments
-def create_equal_segments(segment_count, midline, frame):
+def create_equal_segments(segment_count, midline, *frame):
     joints = [[0 for _ in range(3)] for _ in range(0)]
+    column = 0
+
+    if frame:
+        column = frame
 
     for i in range(segment_count):
-        increment = (i // segment_count) * len(midline)
-        x = midline[increment][frame][0]
-        y = midline[increment][frame][1]
+        increment = int((i / segment_count) * len(midline))
+        x = midline[increment][column][0]
+        y = midline[increment][column][1]
         joints.append([x, y, increment])
+
     return joints
 
 
@@ -358,9 +363,7 @@ def main():
 
     joints = test_gen(fish_midline)
 
-
-
-    plot_joints = [6, 10, 12]
+    plot_joints = [6]  # 6, 10, 12
 
     for i in range(len(plot_joints)):  # all: fish_midline[0])
         for j in range(len(joints)):
@@ -374,12 +377,19 @@ def main():
             plt.scatter(fish_midline[joints[j][2]][plot_joints[i]][0],
                         fish_midline[joints[j][2]][plot_joints[i]][1], color='red')
 
+    joints = create_equal_segments(7, fish_midline)
+
+    for i in range(len(plot_joints)):  # all: fish_midline[0])
+        for j in range(len(joints)):
+            plt.scatter(fish_midline[joints[j][2]][plot_joints[i]][0],
+                        fish_midline[joints[j][2]][plot_joints[i]][1], color='yellow')
 
     print("==========================")
 
     print("number of joints = ", len(joints), ", Joints: ", joints)
 
-    plot_midline(fish_midline, 6, 10, 12)  # 6, 10, 12?,
+    for j in range(len(plot_joints)):
+        plot_midline(fish_midline, plot_joints[j])
 
     plt.show()
 
