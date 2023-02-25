@@ -102,7 +102,7 @@ def generate_segments(midline):
             else:
                 joints.append([midline[increments][0][0],
                                midline[increments][0][1], increments])
-                print("Adding joint: ", joints[len(joints) - 1])
+                # print("Adding joint: ", joints[len(joints) - 1])
 
         else:
             print("Houston, we have a problem")
@@ -112,6 +112,7 @@ def generate_segments(midline):
 
 # implementation of equally divided segments
 def create_equal_segments(segment_count, midline, *frame):
+    print("\n--Generating equally spaced segments--\n")
     joints = [[0 for _ in range(3)] for _ in range(0)]
     column = 0
 
@@ -220,8 +221,8 @@ def find_error(Se, Sb, Mp):
 # another option - for each joint, generate segments for 1 frame. try segment on other frames and reduce size as needed
 
 # optimises the generation method by using greedy binary search
-def test_gen_divide_and_conquer(midline):
-    all_joints = [[[0 for _ in range(3)] for _ in range(len(midline[0]))] for _ in range(200)]
+def grow_segments_divide_and_conquer(midline):
+    print("\n--Generating segments by growing divide & conquer--\n")
 
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
@@ -263,8 +264,7 @@ def test_gen_divide_and_conquer(midline):
                     segment_built = True
                     tmp_joints.append(segment_end)
                     avg_joint += segment_end[2]
-                    # print("frame:", f, " total divisions:", divisions, " Joint:", segment_end, " error:", error)
-                
+
                 if end == len(midline)-1:
                     avg_end_error += error
                 
@@ -283,22 +283,24 @@ def test_gen_divide_and_conquer(midline):
                         segment_end[0] = midline[segment_end[2]][f][0]
                         divisions += 1
 
-        all_joints.append(tmp_joints)
-
         avg_joint = avg_joint // len(tmp_joints)
 
         joints.append([midline[avg_joint][0][0], midline[avg_joint][0][1], avg_joint])
 
-        print("Adding:", joints[len(joints)-1])
+        # print("Adding joint:", joints[len(joints)-1])
 
         if (avg_end_error / len(midline[0])) < error_threshold:
             print("avg_end_error:", avg_end_error / len(midline[0]), " avg_joint:", avg_joint)
             completed = True
 
+    joints.pop()
+
     return joints
 
 
-def test_gen(midline):
+def grow_segments(midline):
+    print("\n--Generating segments by growing--\n")
+    
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
 
@@ -342,7 +344,7 @@ def test_gen(midline):
             else:
                 joints.append([midline[increments][0][0],
                                midline[increments][0][1], increments])
-                print(" Adding joint: ", joints[len(joints) - 1])
+                # print("Adding joint: ", joints[len(joints) - 1])
 
         else:
             print("Houston, we have a problem")
@@ -361,29 +363,32 @@ def main():
 
     # joints = create_diminishing_segments(10, fish_midline, 0)
 
-    joints = test_gen(fish_midline)
-
     plot_joints = [6]  # 6, 10, 12
+
+    joints = grow_segments(fish_midline)
+    print("number of joints:", len(joints))
 
     for i in range(len(plot_joints)):  # all: fish_midline[0])
         for j in range(len(joints)):
             plt.scatter(fish_midline[joints[j][2]][plot_joints[i]][0],
                         fish_midline[joints[j][2]][plot_joints[i]][1], color='green')
 
-    joints = test_gen_divide_and_conquer(fish_midline)
-
+    joints = grow_segments_divide_and_conquer(fish_midline)
+    print("number of joints:", len(joints))
     for i in range(len(plot_joints)):  # all: fish_midline[0])
         for j in range(len(joints)):
             plt.scatter(fish_midline[joints[j][2]][plot_joints[i]][0],
                         fish_midline[joints[j][2]][plot_joints[i]][1], color='red')
 
+    """
     joints = create_equal_segments(7, fish_midline)
+    print("number of joints:", len(joints))
 
     for i in range(len(plot_joints)):  # all: fish_midline[0])
         for j in range(len(joints)):
             plt.scatter(fish_midline[joints[j][2]][plot_joints[i]][0],
                         fish_midline[joints[j][2]][plot_joints[i]][1], color='yellow')
-
+    """
     print("==========================")
 
     print("number of joints = ", len(joints), ", Joints: ", joints)
