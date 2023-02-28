@@ -7,13 +7,12 @@ import numpy as np
 
 # implementation of growth algorithm
 
-error_threshold = 0.5
-
 
 # get data from every other line for now
 def load_midline_data(location):
     file_data = pd.read_excel(location)
     dimensions = file_data.shape
+    print("Loading:", location)
     print("shape: ", dimensions)
 
     midline = [[[0 for _ in range(2)] for _ in range(dimensions[1] // 2)] for _ in range(dimensions[0])]
@@ -50,10 +49,8 @@ def plot_midline(midline, *columns):
     plt.xlabel("x")
     plt.ylabel("y")
 
-    plt.show()
 
-
-def generate_segments(midline):
+def generate_segments(midline, error_threshold):
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
 
@@ -106,7 +103,7 @@ def generate_segments(midline):
 
         else:
             print("Houston, we have a problem")
-    plt.show()
+
     return joints
 
 
@@ -203,7 +200,12 @@ def find_error(Se, Sb, Mp):
     gradient = (Se[1] - Sb[1]) / (Se[0] - Sb[0])
     c = Se[1] - (gradient * Se[0])
 
+    if gradient == 0:
+        # gradient is 0 so perpendicular line is undefined
+        return 0
+
     perpendicular_gradient = -1 / gradient
+
     perpendicular_c = Mp[1] - (perpendicular_gradient * Mp[0])
 
     x = abs((c - perpendicular_c) / (gradient - perpendicular_gradient))
@@ -221,7 +223,7 @@ def find_error(Se, Sb, Mp):
 # another option - for each joint, generate segments for 1 frame. try segment on other frames and reduce size as needed
 
 # optimises the generation method by using greedy binary search
-def grow_segments_divide_and_conquer(midline):
+def grow_segments_divide_and_conquer(midline, error_threshold):
     print("\n--Generating segments by growing divide & conquer--\n")
 
     joints = [[0 for _ in range(3)] for _ in range(0)]
@@ -298,7 +300,7 @@ def grow_segments_divide_and_conquer(midline):
     return joints
 
 
-def grow_segments(midline):
+def grow_segments(midline, error_threshold):
     print("\n--Generating segments by growing--\n")
     
     joints = [[0 for _ in range(3)] for _ in range(0)]
@@ -352,10 +354,32 @@ def grow_segments(midline):
     return joints
 
 
+# turn joint data to actual lengths
+def joints_to_length(joints):
+    segments = [0]
+    length = 0
+    plt.scatter(length, 0, color='black')
+
+    for i in range(len(joints)-1):
+        # length = √((x2 – x1)² + (y2 – y1)²)
+        start = joints[i]
+        end = joints[i+1]
+        length += math.sqrt((start[0] - end[0]) ** 2 + (start[1] - end[1]) ** 2)
+        length_difference = length - segments[i]
+        segments.append(length)
+        plt.scatter(length, 0, color='black')
+        print("i:", i, " start:", round(start[0], 3), round(start[1], 3), " end:", round(end[0], 3), round(end[1], 3),
+              " length:", round(length, 3), " difference:", round(length_difference, 3))
+    return segments
+
+
+# run code
 def main():
+    error_threshold = 1
+
     file_path = "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and Ted/midlines/"
     # file_path = r"C:\Users\Which\Desktop\uni\Y3\Main_assignment\Data\Sturgeon from Elsa and Ted\midlines/"
-    file_name = "Acipenser_brevirostrum.Conte.102cm.350BL.s01.avi_CURVES.xls"
+    file_name = "Acipenser_brevirostrum.Conte.79cm.350BL.s01.avi_CURVES.xls"
 
     fish_midline = load_midline_data(file_path + file_name)
 
@@ -363,32 +387,28 @@ def main():
 
     # joints = create_diminishing_segments(10, fish_midline, 0)
 
-    plot_joints = [6]  # 6, 10, 12
+    plot_joints = [5, 6, 7, 8]  # 6, 10, 12
 
-    joints = grow_segments(fish_midline)
-    print("number of joints:", len(joints))
+    joints = grow_segments(fish_midline, error_threshold)
+
+    print("number of joints (green):", len(joints))
 
     for i in range(len(plot_joints)):  # all: fish_midline[0])
         for j in range(len(joints)):
             plt.scatter(fish_midline[joints[j][2]][plot_joints[i]][0],
                         fish_midline[joints[j][2]][plot_joints[i]][1], color='green')
 
-    joints = grow_segments_divide_and_conquer(fish_midline)
-    print("number of joints:", len(joints))
+    """
+    joints = grow_segments_divide_and_conquer(fish_midline, error_threshold)
+    print("number of joints (red):", len(joints))
     for i in range(len(plot_joints)):  # all: fish_midline[0])
         for j in range(len(joints)):
             plt.scatter(fish_midline[joints[j][2]][plot_joints[i]][0],
-                        fish_midline[joints[j][2]][plot_joints[i]][1], color='red')
-
+                        fish_midline[joints[j][2]][plot_joints[i]][1], color='red
     """
-    joints = create_equal_segments(7, fish_midline)
-    print("number of joints:", len(joints))
 
-    for i in range(len(plot_joints)):  # all: fish_midline[0])
-        for j in range(len(joints)):
-            plt.scatter(fish_midline[joints[j][2]][plot_joints[i]][0],
-                        fish_midline[joints[j][2]][plot_joints[i]][1], color='yellow')
-    """
+    joints_to_length(joints)
+
     print("==========================")
 
     print("number of joints = ", len(joints), ", Joints: ", joints)
