@@ -368,9 +368,48 @@ def joints_to_length(joints):
         length_difference = length - segments[i]
         segments.append(length)
         plt.scatter(length, 0, color='black')
+        plt.annotate('(%d)' % joints[i+1][2], (length, 1))
         print("i:", i, " start:", round(start[0], 3), round(start[1], 3), " end:", round(end[0], 3), round(end[1], 3),
               " length:", round(length, 3), " difference:", round(length_difference, 3))
     return segments
+
+
+def use_all_data(error_threshold):
+    file_path = "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and Ted/midlines/"
+    all_filenames = ["Acipenser_brevirostrum.Conte.110cm.1BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.110cm.1BL.s02.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.104cm.3BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.104cm.3BL.s02.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.102cm.350BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.98cm.4BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.98cm.4BL.s02.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.93cm.350BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.93cm.350BL.s02.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.91cm.150BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.91cm.150BL.s02.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.88cm.150BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.79cm.450BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.79cm.450BL.s02.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.79cm.350BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.79cm.350BL.s02.avi_CURVES.xls"]
+
+    for f in range(len(all_filenames)-1):
+        fish_midline = load_midline_data(file_path+all_filenames[f])
+        joints = grow_segments(fish_midline, error_threshold)
+
+        for i in range(len(fish_midline[0])):  # all: fish_midline[0])
+            for j in range(len(joints)):
+                plt.scatter(fish_midline[joints[j][2]][i][0],
+                            fish_midline[joints[j][2]][i][1], color='green')
+
+        plot_midline(fish_midline)
+
+        joints_to_length(joints)
+
+        plt.title(all_filenames[f])
+
+        plt.show()
+
 
 
 # run code
@@ -387,16 +426,16 @@ def main():
 
     # joints = create_diminishing_segments(10, fish_midline, 0)
 
-    plot_joints = [5, 6, 7, 8]  # 6, 10, 12
+    # plot_joints = [5, 6, 7, 8]  # 6, 10, 12
 
     joints = grow_segments(fish_midline, error_threshold)
 
     print("number of joints (green):", len(joints))
 
-    for i in range(len(plot_joints)):  # all: fish_midline[0])
+    for i in range(len(fish_midline[0])):  # all: fish_midline[0])
         for j in range(len(joints)):
-            plt.scatter(fish_midline[joints[j][2]][plot_joints[i]][0],
-                        fish_midline[joints[j][2]][plot_joints[i]][1], color='green')
+            plt.scatter(fish_midline[joints[j][2]][i][0],
+                        fish_midline[joints[j][2]][i][1], color='green')
 
     """
     joints = grow_segments_divide_and_conquer(fish_midline, error_threshold)
@@ -407,16 +446,15 @@ def main():
                         fish_midline[joints[j][2]][plot_joints[i]][1], color='red
     """
 
-    joints_to_length(joints)
-
-    print("==========================")
-
     print("number of joints = ", len(joints), ", Joints: ", joints)
 
-    for j in range(len(plot_joints)):
-        plot_midline(fish_midline, plot_joints[j])
+    plot_midline(fish_midline)
+
+    joints_to_length(joints)
 
     plt.show()
 
 
-main()
+# main()
+
+use_all_data(0.5)
