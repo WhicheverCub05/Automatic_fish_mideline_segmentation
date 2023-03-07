@@ -4,27 +4,36 @@ import math
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import os.path
+from os import path
+import sys
+import glob  # used to find
+
 
 # implementation of growth algorithm
 
 
 # get data from every other line for now
 def load_midline_data(location):
-    file_data = pd.read_excel(location)
-    dimensions = file_data.shape
     print("Loading:", location)
-    print("shape: ", dimensions)
+    try:
+        file_data = pd.read_excel(location)
+        dimensions = file_data.shape
+        print("shape: ", dimensions)
 
-    midline = [[[0 for _ in range(2)] for _ in range(dimensions[1] // 2)] for _ in range(dimensions[0])]
+        midline = [[[0 for _ in range(2)] for _ in range(dimensions[1] // 2)] for _ in range(dimensions[0])]
 
-    for column in range(0, dimensions[1], 2):
-        for row in range(dimensions[0]):
-            x = file_data.iat[row, column]
-            y = file_data.iat[row, column + 1]
-            midline[row][column // 2][0] = x
-            midline[row][column // 2][1] = y
+        for column in range(0, dimensions[1], 2):
+            for row in range(dimensions[0]):
+                x = file_data.iat[row, column]
+                y = file_data.iat[row, column + 1]
+                midline[row][column // 2][0] = x
+                midline[row][column // 2][1] = y
+        return midline
 
-    return midline
+    except FileNotFoundError:
+        print("the file is not found")
+        return [[[0]]]
 
 
 def plot_midline(midline, *columns):
@@ -109,7 +118,6 @@ def generate_segments(midline, error_threshold):
 
 # implementation of equally divided segments
 def create_equal_segments(midline, segment_count, *frame):
-    print("\n--Generating equally spaced segments--\n")
     joints = [[0 for _ in range(3)] for _ in range(0)]
     column = 0
 
@@ -203,12 +211,12 @@ def math_test_bench():
 
 
 def find_error(Se, Sb, Mp):
-    gradient = (Se[1] - Sb[1]) / (Se[0] - Sb[0])
-    c = Se[1] - (gradient * Se[0])
-
-    if gradient == 0:
+    if Se[1] - Sb[1] == 0 or Se[0] - Sb[0] == 0:
         # gradient is 0 so perpendicular line is undefined
         return 0
+
+    gradient = (Se[1] - Sb[1]) / (Se[0] - Sb[0])
+    c = Se[1] - (gradient * Se[0])
 
     perpendicular_gradient = -1 / gradient
 
@@ -221,8 +229,6 @@ def find_error(Se, Sb, Mp):
 
     # print("Sb: ", Sb, " Se: ", Se, "Mp: ", Mp, "intersection x:", x, "y:", y, " error: ", error)
 
-    # plt.scatter(x, y)
-
     return error
 
 
@@ -230,8 +236,6 @@ def find_error(Se, Sb, Mp):
 
 # optimises the generation method by using greedy binary search
 def grow_segments_divide_and_conquer(midline, error_threshold):
-    print("\n--Generating segments by growing divide & conquer--\n")
-
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
 
@@ -295,7 +299,7 @@ def grow_segments_divide_and_conquer(midline, error_threshold):
 
         joints.append([midline[avg_joint][0][0], midline[avg_joint][0][1], avg_joint])
 
-        # print("Adding joint:", joints[len(joints)-1])
+        print("Adding joint:", joints[len(joints) - 1])
 
         if (avg_end_error / len(midline[0])) < error_threshold:
             print("avg_end_error:", avg_end_error / len(midline[0]), " avg_joint:", avg_joint)
@@ -307,8 +311,6 @@ def grow_segments_divide_and_conquer(midline, error_threshold):
 
 
 def grow_segments(midline, error_threshold):
-    print("\n--Generating segments by growing--\n")
-
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
 
@@ -352,7 +354,7 @@ def grow_segments(midline, error_threshold):
             else:
                 joints.append([midline[increments][0][0],
                                midline[increments][0][1], increments])
-                # print("Adding joint: ", joints[len(joints) - 1])
+                print("Adding joint: ", joints[len(joints) - 1])
 
         else:
             print("Houston, we have a problem")
@@ -374,14 +376,14 @@ def joints_to_length(joints):
         length_difference = length - segments[i]
         segments.append(length)
         plt.scatter(length, 0, color='black')
-        plt.annotate('(%d)' % joints[i + 1][2], (length, 1))
-        print("i:", i, " start:", round(start[0], 3), round(start[1], 3), " end:", round(end[0], 3), round(end[1], 3),
-              " length:", round(length, 3), " difference:", round(length_difference, 3))
+        plt.annotate('(%d)' % joints[i + 1][2], (length, i % 2))
+        # print("i:", i, " start:", round(start[0], 3), round(start[1], 3), " end:", round(end[0], 3), round(end[1], 3),
+        #       " length:", round(length, 3), " difference:", round(length_difference, 3))
     return segments
 
 
-def use_all_data(generation_method, **parameters):
-    file_path = "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and Ted/midlines/"
+def use_all_data(generation_method, folder_path, **parameters):
+    # folder_path = "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and Ted/midlines/"
     all_filenames = ["Acipenser_brevirostrum.Conte.110cm.1BL.s01.avi_CURVES.xls",
                      "Acipenser_brevirostrum.Conte.110cm.1BL.s02.avi_CURVES.xls",
                      "Acipenser_brevirostrum.Conte.104cm.3BL.s01.avi_CURVES.xls",
@@ -401,7 +403,7 @@ def use_all_data(generation_method, **parameters):
 
     for f in range(len(all_filenames) - 1):
 
-        fish_midline = load_midline_data(file_path + all_filenames[f])
+        fish_midline = load_midline_data(folder_path + all_filenames[f])
 
         if 'error_threshold' in parameters:
             joints = generation_method(midline=fish_midline, error_threshold=parameters['error_threshold'])
@@ -437,47 +439,7 @@ def use_all_data(generation_method, **parameters):
         plt.cla()
 
 
-# run code
-def main():
-    error_threshold = 1
-
-    file_path = "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and Ted/midlines/"
-    # file_path = r"C:\Users\Which\Desktop\uni\Y3\Main_assignment\Data\Sturgeon from Elsa and Ted\midlines/"
-    file_name = "Acipenser_brevirostrum.Conte.79cm.350BL.s01.avi_CURVES.xls"
-
-    fish_midline = load_midline_data(file_path + file_name)
-
-    # plot_joints = [5, 6, 7, 8]  # 6, 10, 12
-
-    joints = grow_segments(fish_midline, error_threshold)
-
-    print("number of joints (green):", len(joints))
-
-    for i in range(len(fish_midline[0])):  # all: fish_midline[0])
-        for j in range(len(joints)):
-            plt.scatter(fish_midline[joints[j][2]][i][0],
-                        fish_midline[joints[j][2]][i][1], color='green')
-
-    """
-    joints = grow_segments_divide_and_conquer(fish_midline, error_threshold)
-    print("number of joints (red):", len(joints))
-    for i in range(len(plot_joints)):  # all: fish_midline[0])
-        for j in range(len(joints)):
-            plt.scatter(fish_midline[joints[j][2]][plot_joints[i]][0],
-                        fish_midline[joints[j][2]][plot_joints[i]][1], color='red
-    """
-
-    print("number of joints = ", len(joints), ", Joints: ", joints)
-
-    plot_midline(fish_midline)
-
-    joints_to_length(joints)
-
-    plt.show()
-
-
-def pick_method_and_save_all():
-
+def pick_method_and_save_all(folder_path):
     error_threshold = 0
     segment_count = 0
 
@@ -516,9 +478,9 @@ def pick_method_and_save_all():
                     break
 
             if user_selection == 'sg_dc':
-                use_all_data(grow_segments_divide_and_conquer, error_threshold=error_threshold)
+                use_all_data(grow_segments_divide_and_conquer, folder_path, error_threshold=error_threshold)
             elif user_selection == 'sg':
-                use_all_data(grow_segments, error_threshold=error_threshold)
+                use_all_data(grow_segments, folder_path, error_threshold=error_threshold)
 
         elif user_selection == 'es' or user_selection == 'ds':
             while 1:
@@ -533,9 +495,9 @@ def pick_method_and_save_all():
                     break
 
             if user_selection == 'es':
-                use_all_data(create_equal_segments, segment_count=segment_count)
+                use_all_data(create_equal_segments, folder_path, segment_count=segment_count)
             elif user_selection == 'ds':
-                use_all_data(create_diminishing_segments, segment_count=segment_count)
+                use_all_data(create_diminishing_segments, folder_path, segment_count=segment_count)
 
         elif user_selection == 'mb':
             math_test_bench()
@@ -547,4 +509,40 @@ def pick_method_and_save_all():
         print("\n===== Operation complete =====\n")
 
 
-pick_method_and_save_all()
+def set_data_folder():
+    # get file path from user, load data
+    print("Set the file location of the database:")
+
+    files_found = False
+    folder_path = ""
+
+    if len(sys.argv) > 1:
+        folder_path = sys.argv[1]
+        print("sys.arg", sys.argv)
+
+    while not files_found:
+        if folder_path == "":
+            folder_path = input("please input the file location:")
+
+        if path.exists(folder_path):
+            files = glob.glob(folder_path+'/*.xls')
+            if len(files) > 0:
+                print("Excel files found:", files)
+                files_found = True
+            else:
+                print("Cannot find any excel files (.xls)")
+                folder_path = ""
+        else:
+            print("Folder not found or no permissions to access it")
+            folder_path = ""
+
+    print("Using folder path:", folder_path)
+
+    return folder_path
+
+
+# run code only when called as a script
+if __name__ == "__main__":
+    directory = set_data_folder()
+    pick_method_and_save_all(folder_path=directory)
+
