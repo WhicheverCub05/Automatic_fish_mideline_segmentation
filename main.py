@@ -33,7 +33,6 @@ def load_midline_data(location):
 
     except FileNotFoundError:
         print("the file is not found")
-        return [[[0]]]
 
 
 def plot_midline(midline, *columns):
@@ -366,7 +365,7 @@ def grow_segments(midline, error_threshold):
 def joints_to_length(joints):
     segments = [0]
     length = 0
-    plt.scatter(length, 0, color='black')
+    plt.scatter(length, 0, color='red')
 
     for i in range(len(joints) - 1):
         # length = √((x2 – x1)² + (y2 – y1)²)
@@ -375,8 +374,9 @@ def joints_to_length(joints):
         length += math.sqrt((start[0] - end[0]) ** 2 + (start[1] - end[1]) ** 2)
         length_difference = length - segments[i]
         segments.append(length)
-        plt.scatter(length, 0, color='black')
-        plt.annotate('(%d)' % joints[i + 1][2], (length, i % 2))
+        plt.scatter(length, 0, color='black', label='(%d)' % joints[i + 1][2])
+        # plt.annotate('(%d)' % joints[i + 1][2], (length, i % 2))
+        plt.legend(loc="upper right")
         # print("i:", i, " start:", round(start[0], 3), round(start[1], 3), " end:", round(end[0], 3), round(end[1], 3),
         #       " length:", round(length, 3), " difference:", round(length_difference, 3))
     return segments
@@ -403,7 +403,7 @@ def use_all_data(generation_method, folder_path, **parameters):
 
     for f in range(len(all_filenames) - 1):
 
-        fish_midline = load_midline_data(folder_path + all_filenames[f])
+        fish_midline = load_midline_data(folder_path + "/" + all_filenames[f])
 
         if 'error_threshold' in parameters:
             joints = generation_method(midline=fish_midline, error_threshold=parameters['error_threshold'])
@@ -427,14 +427,14 @@ def use_all_data(generation_method, folder_path, **parameters):
         plt.xlabel('x')
         plt.ylabel('y')
 
+        filename = '/mnt/chromeos/MyFiles/Y3_Project/Fish data/Graphs/' + generation_method.__name__ \
+                   + str(parameters) + all_filenames[f][28:45:1] + '.svg'
         try:
-            filename = '/mnt/chromeos/MyFiles/Y3_Project/Fish data/Graphs/' + generation_method.__name__ \
-                       + str(parameters) + all_filenames[f][28:45:1] + '.svg'
             plt.savefig(filename)
             print("saved file:", filename)
         except FileNotFoundError:
-            print("Something is up with the filename or directory. Please check that the following folder exists: "
-                  + "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Graphs")
+            print("Something is up with the filename or directory. Please check that the following file exists: "
+                  + folder_path + filename)
 
         plt.cla()
 
@@ -525,7 +525,7 @@ def set_data_folder():
             folder_path = input("please input the file location:")
 
         if path.exists(folder_path):
-            files = glob.glob(folder_path+'/*.xls')
+            files = glob.glob(folder_path + '/*.xls')
             if len(files) > 0:
                 print("Excel files found:", files)
                 files_found = True
@@ -534,6 +534,7 @@ def set_data_folder():
                 folder_path = ""
         else:
             print("Folder not found or no permissions to access it")
+            print("FP:", folder_path)
             folder_path = ""
 
     print("Using folder path:", folder_path)
@@ -543,6 +544,17 @@ def set_data_folder():
 
 # run code only when called as a script
 if __name__ == "__main__":
+    """
+    j = load_midline_data("/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and "
+                               "Ted/midlines/Acipenser_brevirostrum.Conte.98cm.4BL.s01.avi_CURVES.xls")
+    m = grow_segments(j, 0.5)
+
+    plot_midline(m)
+
+    joints_to_length(j)
+
+    plt.show()
+    """
+
     directory = set_data_folder()
     pick_method_and_save_all(folder_path=directory)
-
