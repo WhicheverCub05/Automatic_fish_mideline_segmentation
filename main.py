@@ -8,6 +8,7 @@ import os.path
 from os import path
 import sys
 import glob  # used to find
+import csv
 
 
 # implementation of growth algorithm
@@ -298,10 +299,10 @@ def grow_segments_divide_and_conquer(midline, error_threshold):
 
         joints.append([midline[avg_joint][0][0], midline[avg_joint][0][1], avg_joint])
 
-        print("Adding joint:", joints[len(joints) - 1])
+        # print("Adding joint:", joints[len(joints) - 1])
 
         if (avg_end_error / len(midline[0])) < error_threshold:
-            print("avg_end_error:", avg_end_error / len(midline[0]), " avg_joint:", avg_joint)
+            # print("avg_end_error:", avg_end_error / len(midline[0]), " avg_joint:", avg_joint)
             completed = True
 
     joints.pop()
@@ -353,7 +354,7 @@ def grow_segments(midline, error_threshold):
             else:
                 joints.append([midline[increments][0][0],
                                midline[increments][0][1], increments])
-                print("Adding joint: ", joints[len(joints) - 1])
+                # print("Adding joint: ", joints[len(joints) - 1])
 
         else:
             print("Houston, we have a problem")
@@ -437,6 +438,46 @@ def use_all_data(generation_method, folder_path, **parameters):
                   + folder_path + filename)
 
         plt.cla()
+
+
+def compare_error(generation_method, folder_path):
+    # folder_path = "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and Ted/midlines/"
+    all_filenames = ["Acipenser_brevirostrum.Conte.110cm.1BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.110cm.1BL.s02.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.104cm.3BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.104cm.3BL.s02.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.102cm.350BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.98cm.4BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.98cm.4BL.s02.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.93cm.350BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.93cm.350BL.s02.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.91cm.150BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.91cm.150BL.s02.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.88cm.150BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.79cm.450BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.79cm.450BL.s02.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.79cm.350BL.s01.avi_CURVES.xls",
+                     "Acipenser_brevirostrum.Conte.79cm.350BL.s02.avi_CURVES.xls"]
+
+    # write data to csv files
+
+    for f in range(len(all_filenames) - 1):
+
+        csv_file = open('/mnt/chromeos/MyFiles/Y3_Project/Fish data/Graphs/' + generation_method.__name__ \
+                        + all_filenames[f][28:45:1] + '.csv', 'w')
+
+        csv_file_writer = csv.writer(csv_file)
+
+        csv_file_writer.writerow(['error_threshold', 'number of joints, fish_info'])
+
+        fish_midline = load_midline_data(folder_path + "/" + all_filenames[f])
+
+        for i in range(20):
+            error_threshold = (i + 1) * 0.1
+            joints = generation_method(midline=fish_midline, error_threshold=error_threshold)
+            csv_file_writer.writerow([error_threshold, len(joints), all_filenames[f][28:45:1]])
+
+        print("--Generation method: ", generation_method.__name__, "--")
 
 
 def pick_method_and_save_all(folder_path):
@@ -544,17 +585,7 @@ def set_data_folder():
 
 # run code only when called as a script
 if __name__ == "__main__":
-    """
-    j = load_midline_data("/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and "
-                               "Ted/midlines/Acipenser_brevirostrum.Conte.98cm.4BL.s01.avi_CURVES.xls")
-    m = grow_segments(j, 0.5)
-
-    plot_midline(m)
-
-    joints_to_length(j)
-
-    plt.show()
-    """
-
     directory = set_data_folder()
-    pick_method_and_save_all(folder_path=directory)
+    compare_error(grow_segments, directory)
+    compare_error(grow_segments_divide_and_conquer, directory)
+    # pick_method_and_save_all(folder_path=directory)
