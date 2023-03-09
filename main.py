@@ -367,7 +367,8 @@ def joints_to_length(joints):
     segments = [0]
     length = 0
     plt.scatter(length, 0, color='red')
-
+    plt.xlim(-10, 150)
+    plt.ylim(-15, 15)
     for i in range(len(joints) - 1):
         # length = √((x2 – x1)² + (y2 – y1)²)
         start = joints[i]
@@ -383,28 +384,16 @@ def joints_to_length(joints):
     return segments
 
 
-def use_all_data(generation_method, folder_path, **parameters):
+def use_all_data(generation_method, data_folder_path, save_folder_path, **parameters):
     # folder_path = "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and Ted/midlines/"
-    all_filenames = ["Acipenser_brevirostrum.Conte.110cm.1BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.110cm.1BL.s02.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.104cm.3BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.104cm.3BL.s02.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.102cm.350BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.98cm.4BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.98cm.4BL.s02.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.93cm.350BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.93cm.350BL.s02.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.91cm.150BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.91cm.150BL.s02.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.88cm.150BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.79cm.450BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.79cm.450BL.s02.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.79cm.350BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.79cm.350BL.s02.avi_CURVES.xls"]
 
-    for f in range(len(all_filenames) - 1):
+    all_files = glob.glob(data_folder_path + '/*.xls')
 
-        fish_midline = load_midline_data(folder_path + "/" + all_filenames[f])
+    print("all_files: ", all_files)
+
+    for f in range(len(all_files) - 1):
+
+        fish_midline = load_midline_data(all_files[f])
 
         if 'error_threshold' in parameters:
             joints = generation_method(midline=fish_midline, error_threshold=parameters['error_threshold'])
@@ -424,18 +413,18 @@ def use_all_data(generation_method, folder_path, **parameters):
 
         joints_to_length(joints)
 
-        plt.title(generation_method.__name__ + str(parameters) + all_filenames[f][28:45:1])
+        plt.title(generation_method.__name__ + str(parameters) + all_files[f][28:45:1])
         plt.xlabel('x')
         plt.ylabel('y')
 
-        filename = '/mnt/chromeos/MyFiles/Y3_Project/Fish data/Graphs/' + generation_method.__name__ \
-                   + str(parameters) + all_filenames[f][28:45:1] + '.svg'
+        filename = save_folder_path + generation_method.__name__ \
+                   + str(parameters) + all_files[f][28:len(all_files[f]) - 15:1] + '.svg'
         try:
             plt.savefig(filename)
             print("saved file:", filename)
         except FileNotFoundError:
-            print("Something is up with the filename or directory. Please check that the following file exists: "
-                  + folder_path + filename)
+            print("Something is up with the filename or directory. Please check that the following file exists: ",
+                  filename)
 
         plt.cla()
 
@@ -461,26 +450,49 @@ def compare_error(generation_method, folder_path):
 
     # write data to csv files
 
+    file_path = '/mnt/chromeos/MyFiles/Y3_Project/Fish data/Results/'
+
+    csv_file = open(file_path + generation_method.__name__ \
+                    + "All_Data" + '.csv', 'w')
+
+    csv_file_writer = csv.writer(csv_file)
+
+    csv_file_writer.writerow(['error_threshold', 'number of joints, fish_info'])
+
+    plt.cla()
     for f in range(len(all_filenames) - 1):
 
-        csv_file = open('/mnt/chromeos/MyFiles/Y3_Project/Fish data/Graphs/' + generation_method.__name__ \
-                        + all_filenames[f][28:45:1] + '.csv', 'w')
-
-        csv_file_writer = csv.writer(csv_file)
-
-        csv_file_writer.writerow(['error_threshold', 'number of joints, fish_info'])
+        csv_file_writer.writerow([''])
 
         fish_midline = load_midline_data(folder_path + "/" + all_filenames[f])
 
         for i in range(20):
+            # matplotlib.animation
             error_threshold = (i + 1) * 0.1
             joints = generation_method(midline=fish_midline, error_threshold=error_threshold)
             csv_file_writer.writerow([error_threshold, len(joints), all_filenames[f][28:45:1]])
+            plt.scatter(error_threshold, len(joints))
+
+        plt.xlabel("error threshold")
+        plt.ylabel("number of joints")
+        plt.title(all_filenames[f])
+        plt.ylim(0, 25)
+
+        plot_name = file_path + generation_method.__name__ + all_filenames[f][28:45:1] + '.svg'
+        try:
+            plt.savefig(plot_name)
+            print("saved plot:", plot_name)
+        except FileNotFoundError:
+            print("Something is up with the filename or directory. Please check that the following file exists: "
+                  + folder_path + plot_name)
+            break
+
+        plt.cla()
 
         print("--Generation method: ", generation_method.__name__, "--")
 
 
-def pick_method_and_save_all(folder_path):
+def pick_method_and_save_all(data_folder_path, *save_path):
     error_threshold = 0
     segment_count = 0
 
@@ -495,7 +507,40 @@ def pick_method_and_save_all(folder_path):
         'q': 'exit script'
     }
 
+    save_folder_path = ""
+    valid_save_path = False
     user_selection = ""
+
+    while not valid_save_path:
+        if save_path:
+            save_folder_path = save_path
+        elif len(sys.argv) > 2:
+            save_folder_path = sys.argv[2]
+        else:
+            save_folder_path = input("input the location you want to save ('nf' makes a new file called 'results'): ")
+            if save_folder_path == 'nf':
+                if os.path.exists(data_folder_path+'/results'):
+                    save_folder_path = data_folder_path+'/results'
+                    break
+                else:
+                    try:
+                        os.mkdir(data_folder_path+'/results')
+                        save_folder_path = data_folder_path+'/results'
+                        break
+                    except FileNotFoundError or FileExistsError:
+                        print("results file can't be made, please check your data permissions folder:", data_folder_path)
+
+        if os.path.exists(save_folder_path):
+            break
+        else:
+            if input("Folder doesn't exist. Create one?").capitalize() == "Y":
+                try:
+                    os.mkdir(save_folder_path)
+                except FileNotFoundError:
+                    print("File can't be written to. Hit enter to continue")
+                    input()
+            else:
+                pass
 
     while user_selection != 'q':
 
@@ -519,9 +564,10 @@ def pick_method_and_save_all(folder_path):
                     break
 
             if user_selection == 'sg_dc':
-                use_all_data(grow_segments_divide_and_conquer, folder_path, error_threshold=error_threshold)
+                use_all_data(grow_segments_divide_and_conquer, data_folder_path, save_folder_path,
+                             error_threshold=error_threshold)
             elif user_selection == 'sg':
-                use_all_data(grow_segments, folder_path, error_threshold=error_threshold)
+                use_all_data(grow_segments, data_folder_path, save_folder_path, error_threshold=error_threshold)
 
         elif user_selection == 'es' or user_selection == 'ds':
             while 1:
@@ -536,9 +582,10 @@ def pick_method_and_save_all(folder_path):
                     break
 
             if user_selection == 'es':
-                use_all_data(create_equal_segments, folder_path, segment_count=segment_count)
+                use_all_data(create_equal_segments, data_folder_path, save_folder_path, segment_count=segment_count)
             elif user_selection == 'ds':
-                use_all_data(create_diminishing_segments, folder_path, segment_count=segment_count)
+                use_all_data(create_diminishing_segments, data_folder_path, save_folder_path,
+                             segment_count=segment_count)
 
         elif user_selection == 'mb':
             math_test_bench()
@@ -552,7 +599,7 @@ def pick_method_and_save_all(folder_path):
 
 def set_data_folder():
     # get file path from user, load data
-    print("Set the file location of the database:")
+    print("-Set the file location of the database-")
 
     files_found = False
     folder_path = ""
@@ -582,10 +629,9 @@ def set_data_folder():
 
     return folder_path
 
-
 # run code only when called as a script
 if __name__ == "__main__":
     directory = set_data_folder()
-    compare_error(grow_segments, directory)
-    compare_error(grow_segments_divide_and_conquer, directory)
-    # pick_method_and_save_all(folder_path=directory)
+    # compare_error(grow_segments, directory)
+    # compare_error(grow_segments_divide_and_conquer, directory)
+    pick_method_and_save_all(data_folder_path=directory)
