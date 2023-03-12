@@ -59,6 +59,64 @@ def plot_midline(midline, *columns):
     plt.ylabel("y")
 
 
+def math_test_bench():
+    x = np.arange(0, 3 * np.pi, 0.1)
+    y = np.sin(x)
+
+    data = [[0.7, 1.0], [1.7, 1.5], [2.3, 2.7], [2.8, 3.7], [3.7, 4]]
+
+    for d in data:
+        plt.plot(d[0], d[1], 'bo', ls='--')
+
+    start = 0
+    end = 4
+
+    Sb = data[start]
+    Se = data[end]
+
+    y1 = Sb[1]
+    y2 = Se[1]
+
+    x1 = Sb[0]
+    x2 = Se[0]
+
+    print("y1:", y1, " y2:", y2, " x1:", x1, " x2:", x2)
+    gr = (y2 - y1) / (x2 - x1)
+
+    c = y1 - (gr * x1)
+
+    x = np.linspace(0, 10, 100)
+    y = (gr * x) + c
+    plt.plot(x, y, '-b')
+
+    # iterate from Sb index to Se index, incrementing Mp index
+    for i in range(start + 1, end, 1):
+        Mp = data[i]
+
+        ym = ((-1 / gr) * x) + Mp[1] - ((-1 / gr) * Mp[0])
+
+        error = find_error(Se, Sb, Mp)
+
+        print("error:", error)
+
+        c_intersection = Mp[1] - ((-1 / gr) * Mp[0])
+        print("C_intersection:", c_intersection)
+
+        x_intersection = abs((c - c_intersection) / (gr-(-1/gr)))
+        y_intersection = ((-1 / gr) * x_intersection) + c_intersection
+
+        print("intersection:", x_intersection, ",", y_intersection)
+        plt.scatter(x_intersection, y_intersection, color='green', label='%d%d' % x_intersection % y_intersection)
+        plt.annotate(str([x_intersection, y_intersection]), [x_intersection, y_intersection])
+
+        plt.plot(x, ym, '-r', label='(%d)' % error)
+
+    plt.legend(loc="upper right")
+    plt.ylim(0, 5)
+    plt.xlim(0, 5)
+    plt.show()
+
+
 def generate_segments(midline, error_threshold):
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
@@ -154,60 +212,11 @@ def create_diminishing_segments(midline, segment_count, *frame):
     return joints
 
 
-def math_test_bench():
-    x = np.arange(0, 3 * np.pi, 0.1)
-    y = np.sin(x)
+def find_area_error(Sb, Se, midline_function):
+    Mp = int((Se[2] - Sb[2])/2)
 
-    # calculate max distance between points
+    # get function of midline curve
 
-    data = [[0.7, 1.0], [1.7, 1.5], [2.3, 2.7], [2.8, 3.7], [3.7, 4]]
-
-    for d in data:
-        plt.plot(d[0], d[1], 'bo', ls='--')
-
-    # calculate error if data[2] was Se
-
-    joints = [0]
-    joints[0] = data[0]
-
-    print("joints: ", joints)
-
-    start = 0
-    end = 4
-
-    Sb = data[start]
-    Se = data[end]
-
-    intersection = [0, 0]
-
-    y1 = Sb[1]
-    y2 = Se[1]
-
-    x1 = Sb[0]
-    x2 = Se[0]
-
-    print("y1:", y1, " y2:", y2, " x1:", x1, " x2:", x2)
-    gr = (y2 - y1) / (x2 - x1)
-
-    c = y1 - (gr * x1)
-
-    x = np.linspace(0, 4, 100)
-    y = (gr * x) + c
-    plt.plot(x, y, '-r')
-
-    # iterate from Sb index to Se index, incrementing Mp index
-    for i in range(start + 1, end, 1):
-        Mp = data[i]
-
-        ym = ((-1 / gr) * x) + Mp[1] - ((-1 / gr) * Mp[0])
-
-        plt.plot(x, ym, '-b')
-
-        error = find_error(Se, Sb, Mp)
-
-        # error is the distance between the two points
-
-    plt.show()
 
 
 def find_error(Se, Sb, Mp):
@@ -417,8 +426,8 @@ def use_all_data(generation_method, data_folder_path, save_folder_path, **parame
         plt.xlabel('x')
         plt.ylabel('y')
 
-        filename = save_folder_path + generation_method.__name__ \
-                   + str(parameters) + all_files[f][28:len(all_files[f]) - 15:1] + '.svg'
+        filename = save_folder_path + "/" + generation_method.__name__ \
+                   + str(parameters) + all_files[f][len(all_files[f]) - 30:len(all_files[f]) - 15:1] + '.svg'
         try:
             plt.savefig(filename)
             print("saved file:", filename)
@@ -508,10 +517,9 @@ def pick_method_and_save_all(data_folder_path, *save_path):
     }
 
     save_folder_path = ""
-    valid_save_path = False
     user_selection = ""
 
-    while not valid_save_path:
+    while 1:
         if save_path:
             save_folder_path = save_path
         elif len(sys.argv) > 2:
@@ -533,12 +541,17 @@ def pick_method_and_save_all(data_folder_path, *save_path):
         if os.path.exists(save_folder_path):
             break
         else:
-            if input("Folder doesn't exist. Create one?").capitalize() == "Y":
+            if input("Folder doesn't exist. Create one? (y/n)").capitalize() == "Y":
+                print("The folder you tried:", save_folder_path)
                 try:
                     os.mkdir(save_folder_path)
+                    break
                 except FileNotFoundError:
-                    print("File can't be written to. Hit enter to continue")
-                    input()
+                    print("Path does not exists. Please try again")
+                    input("Hit enter to continue")
+                except PermissionError:
+                    print("Permission is denied. Please try another path")
+                    input("Hit enter to continue")
             else:
                 pass
 
