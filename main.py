@@ -36,6 +36,48 @@ def load_midline_data(location):
         print("the file is not found")
 
 
+# asks the user to set a filepath to save data
+def get_user_save_path(data_path, *save_path):
+    while 1:
+        if save_path:
+            folder_path = save_path
+        elif len(sys.argv) > 2:
+            folder_path = sys.argv[2]
+        else:
+            folder_path = input("input the location you want to save ('nf' makes a new file called 'results'): ")
+            if folder_path == 'nf':
+                if os.path.exists(data_path + '/results'):
+                    folder_path = data_path + '/results'
+                    break
+                else:
+                    try:
+                        os.mkdir(data_path + '/results')
+                        folder_path = data_path + '/results'
+                        break
+                    except FileNotFoundError or FileExistsError:
+                        print("results file can't be made, please check your data permissions folder:",
+                              data_path)
+
+        if os.path.exists(folder_path):
+            break
+        else:
+            if input("Folder doesn't exist. Create one? (y/n)").capitalize() == "Y":
+                print("The folder you tried:", folder_path)
+                try:
+                    os.mkdir(folder_path)
+                    break
+                except FileNotFoundError:
+                    print("Path does not exists. Please try again")
+                    input("Hit enter to continue")
+                except PermissionError:
+                    print("Permission is denied. Please try another path")
+                    input("Hit enter to continue")
+            else:
+                pass
+
+    return folder_path
+
+
 def plot_midline(midline, *columns):
     if columns:
         for c in columns:
@@ -102,11 +144,11 @@ def math_test_bench():
         c_intersection = Mp[1] - ((-1 / gr) * Mp[0])
         print("C_intersection:", c_intersection)
 
-        x_intersection = abs((c - c_intersection) / (gr-(-1/gr)))
+        x_intersection = abs((c - c_intersection) / (gr - (-1 / gr)))
         y_intersection = ((-1 / gr) * x_intersection) + c_intersection
 
         print("intersection:", x_intersection, ",", y_intersection)
-        plt.scatter(x_intersection, y_intersection, color='green', label='%d%d' % x_intersection % y_intersection)
+        plt.scatter(x_intersection, y_intersection, color='green', label='(%d,%d)' % (x_intersection, y_intersection))
         plt.annotate(str([x_intersection, y_intersection]), [x_intersection, y_intersection])
 
         plt.plot(x, ym, '-r', label='(%d)' % error)
@@ -115,63 +157,6 @@ def math_test_bench():
     plt.ylim(0, 5)
     plt.xlim(0, 5)
     plt.show()
-
-
-def generate_segments(midline, error_threshold):
-    joints = [[0 for _ in range(3)] for _ in range(0)]
-    joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
-
-    segment_beginning = [0, 0]
-    segment_end = [0, 0]
-    increments = 1
-
-    while increments < len(midline):  # number of rows
-        error = 0.0
-
-        for f in range(1):  # len(midline[0]) all columns
-
-            segment_beginning[0] = midline[joints[len(joints) - 1][2]][f][0]
-            segment_beginning[1] = midline[joints[len(joints) - 1][2]][f][1]
-
-            segment_end[0] = midline[increments][f][0]
-            segment_end[1] = midline[increments][f][1]
-
-            for i in range(joints[len(joints) - 1][2], increments, 1):
-                a = abs((segment_end[1] - segment_beginning[1]) * midline[i][f][0]
-                        - (segment_end[0] - segment_beginning[0])
-                        * midline[i][f][1] + segment_beginning[0] * segment_end[1] - segment_end[0] *
-                        segment_beginning[1])
-                b = math.sqrt((segment_end[0] - segment_beginning[0])
-                              ** 2 + (segment_end[1] - segment_beginning[1]) ** 2)
-
-                if error < abs(a / b) / 100 and (a != 0.0 and b != 0.0):
-                    error = abs(a / b) / 100
-
-                plt.scatter(i, error)
-
-        # error /= 3
-        # error /= len(midline[0])
-
-        if error < error_threshold:
-            print("ye: ", increments, " error: ", error)
-            increments += 1
-
-        elif error >= error_threshold:
-            increments -= 1
-
-            if increments <= joints[len(joints) - 1][2]:
-                print("stuck on increment: ", increments, "error: ", error, "Sb: ", segment_beginning,
-                      "Se: ", segment_end)
-                break
-            else:
-                joints.append([midline[increments][0][0],
-                               midline[increments][0][1], increments])
-                # print("Adding joint: ", joints[len(joints) - 1])
-
-        else:
-            print("Houston, we have a problem")
-
-    return joints
 
 
 # implementation of equally divided segments
@@ -213,10 +198,9 @@ def create_diminishing_segments(midline, segment_count, *frame):
 
 
 def find_area_error(Sb, Se, midline_function):
-    Mp = int((Se[2] - Sb[2])/2)
+    Mp = int((Se[2] - Sb[2]) / 2)
 
     # get function of midline curve
-
 
 
 def find_error(Se, Sb, Mp):
@@ -244,7 +228,7 @@ def find_error(Se, Sb, Mp):
 # another option - for each joint, generate segments for 1 frame. try segment on other frames and reduce size as needed
 
 # optimises the generation method by using greedy binary search
-def grow_segments_divide_and_conquer(midline, error_threshold):
+def grow_segments_divide_and_conquer_midpoint_only(midline, error_threshold):
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
 
@@ -393,10 +377,10 @@ def joints_to_length(joints):
     return segments
 
 
-def use_all_data(generation_method, data_folder_path, save_folder_path, **parameters):
+def use_all_data(generation_method, data_path, save_path, **parameters):
     # folder_path = "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and Ted/midlines/"
 
-    all_files = glob.glob(data_folder_path + '/*.xls')
+    all_files = glob.glob(data_path + '/*.xls')
 
     print("all_files: ", all_files)
 
@@ -426,7 +410,7 @@ def use_all_data(generation_method, data_folder_path, save_folder_path, **parame
         plt.xlabel('x')
         plt.ylabel('y')
 
-        filename = save_folder_path + "/" + generation_method.__name__ \
+        filename = save_path + "/" + generation_method.__name__ \
                    + str(parameters) + all_files[f][len(all_files[f]) - 30:len(all_files[f]) - 15:1] + '.svg'
         try:
             plt.savefig(filename)
@@ -438,62 +422,48 @@ def use_all_data(generation_method, data_folder_path, save_folder_path, **parame
         plt.cla()
 
 
-def compare_error(generation_method, folder_path):
+def compare_error(generation_method, data_path, save_path):
     # folder_path = "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and Ted/midlines/"
-    all_filenames = ["Acipenser_brevirostrum.Conte.110cm.1BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.110cm.1BL.s02.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.104cm.3BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.104cm.3BL.s02.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.102cm.350BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.98cm.4BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.98cm.4BL.s02.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.93cm.350BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.93cm.350BL.s02.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.91cm.150BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.91cm.150BL.s02.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.88cm.150BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.79cm.450BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.79cm.450BL.s02.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.79cm.350BL.s01.avi_CURVES.xls",
-                     "Acipenser_brevirostrum.Conte.79cm.350BL.s02.avi_CURVES.xls"]
+    all_files = glob.glob(data_path + '/*.xls')
 
     # write data to csv files
 
-    file_path = '/mnt/chromeos/MyFiles/Y3_Project/Fish data/Results/'
+    user_save_path = save_path
 
-    csv_file = open(file_path + generation_method.__name__ \
-                    + "All_Data" + '.csv', 'w')
+    csv_file = open(user_save_path + "/" + generation_method.__name__ \
+                    + "_" + "All_Data" + '.csv', 'w')
 
     csv_file_writer = csv.writer(csv_file)
 
     csv_file_writer.writerow(['error_threshold', 'number of joints, fish_info'])
 
     plt.cla()
-    for f in range(len(all_filenames) - 1):
+    for f in range(len(all_files) - 1):
 
         csv_file_writer.writerow([''])
 
-        fish_midline = load_midline_data(folder_path + "/" + all_filenames[f])
+        fish_midline = load_midline_data(all_files[f])
 
-        for i in range(20):
+        for i in range(40):
             # matplotlib.animation
-            error_threshold = (i + 1) * 0.1
+            error_threshold = (i + 1) * 0.05
             joints = generation_method(midline=fish_midline, error_threshold=error_threshold)
-            csv_file_writer.writerow([error_threshold, len(joints), all_filenames[f][28:45:1]])
+            csv_file_writer.writerow([error_threshold, len(joints),
+                                      all_files[f][len(all_files[f]) - 30:len(all_files[f]) - 15:1]])
             plt.scatter(error_threshold, len(joints))
 
         plt.xlabel("error threshold")
         plt.ylabel("number of joints")
-        plt.title(all_filenames[f])
+        plt.title(os.path.basename(all_files[f]))
         plt.ylim(0, 25)
-
-        plot_name = file_path + generation_method.__name__ + all_filenames[f][28:45:1] + '.svg'
+        plot_name = save_path + "/" + generation_method.__name__ + "." \
+                    + all_files[f][len(all_files[f]) - 30:len(all_files[f]) - 15:1] + '.svg'
         try:
             plt.savefig(plot_name)
             print("saved plot:", plot_name)
         except FileNotFoundError:
-            print("Something is up with the filename or directory. Please check that the following file exists: "
-                  + folder_path + plot_name)
+            print("\nSomething is up with the filename or directory. Please check that the following file exists: "
+                  + plot_name + "\n")
             break
 
         plt.cla()
@@ -501,113 +471,97 @@ def compare_error(generation_method, folder_path):
         print("--Generation method: ", generation_method.__name__, "--")
 
 
-def pick_method_and_save_all(data_folder_path, *save_path):
+def pick_method_and_save_all(data_path, *save_path):
     error_threshold = 0
     segment_count = 0
 
     # let user pick method and error and save
 
-    generation_dictionary = {
+    ui_dictionary = {
         "sg": "grow_segments",
-        'sg_dc': "grow_segments_divide_and_conquer",
+        'sg_dc': "grow_segments_divide_and_conquer_midpoint_only",
         'es': "create_equal_segments",
         'ds': "create_diminishing_segments",
         'mb': "math_test_bench",
+        'ce': "compare method with increasing error",
         'q': 'exit script'
     }
 
-    save_folder_path = ""
+    if save_path:
+        user_save_path = get_user_save_path(data_path, save_path)
+    else:
+        user_save_path = get_user_save_path(data_path)
+
     user_selection = ""
 
-    while 1:
-        if save_path:
-            save_folder_path = save_path
-        elif len(sys.argv) > 2:
-            save_folder_path = sys.argv[2]
-        else:
-            save_folder_path = input("input the location you want to save ('nf' makes a new file called 'results'): ")
-            if save_folder_path == 'nf':
-                if os.path.exists(data_folder_path+'/results'):
-                    save_folder_path = data_folder_path+'/results'
-                    break
-                else:
-                    try:
-                        os.mkdir(data_folder_path+'/results')
-                        save_folder_path = data_folder_path+'/results'
-                        break
-                    except FileNotFoundError or FileExistsError:
-                        print("results file can't be made, please check your data permissions folder:", data_folder_path)
-
-        if os.path.exists(save_folder_path):
-            break
-        else:
-            if input("Folder doesn't exist. Create one? (y/n)").capitalize() == "Y":
-                print("The folder you tried:", save_folder_path)
-                try:
-                    os.mkdir(save_folder_path)
-                    break
-                except FileNotFoundError:
-                    print("Path does not exists. Please try again")
-                    input("Hit enter to continue")
-                except PermissionError:
-                    print("Permission is denied. Please try another path")
-                    input("Hit enter to continue")
-            else:
-                pass
+    # menu user menu selection
 
     while user_selection != 'q':
 
-        for option in generation_dictionary:
-            print(option, ": ", generation_dictionary[option])
+        for option in ui_dictionary:
+            print(option, ": ", ui_dictionary[option])
 
-        user_selection = input("please select the method: ")
-        if user_selection not in generation_dictionary:
-            print("try again b")
+        user_selection = input("Select the method: ")
+        if user_selection not in ui_dictionary:
+            print("\noption not available\n")
 
         if user_selection == 'sg' or user_selection == 'sg_dc':
             while 1:
                 try:
-                    error_threshold = float(input("please input an error threshold value: "))
+                    error_threshold = float(input("Input an error threshold value: "))
                 except ValueError:
-                    print("please input a numerical value")
+                    print("\nplease input a numerical value\n")
 
                 if error_threshold <= 0:
-                    print("please input a value larger than 0")
+                    print("\nplease input a value larger than 0\n")
                 else:
                     break
 
             if user_selection == 'sg_dc':
-                use_all_data(grow_segments_divide_and_conquer, data_folder_path, save_folder_path,
+                use_all_data(grow_segments_divide_and_conquer_midpoint_only, data_path, user_save_path,
                              error_threshold=error_threshold)
             elif user_selection == 'sg':
-                use_all_data(grow_segments, data_folder_path, save_folder_path, error_threshold=error_threshold)
+                use_all_data(grow_segments, data_path, user_save_path, error_threshold=error_threshold)
 
         elif user_selection == 'es' or user_selection == 'ds':
             while 1:
                 try:
-                    segment_count = int(input("please input the number of segments: "))
+                    segment_count = int(input("input the number of segments: "))
                 except ValueError:
-                    print("please input a numerical value")
-
+                    print("\nplease input a numerical value\n")
                 if segment_count <= 0:
-                    print("please input a value larger than 0")
+                    print("\nplease input a value larger than 0\n")
                 else:
                     break
 
             if user_selection == 'es':
-                use_all_data(create_equal_segments, data_folder_path, save_folder_path, segment_count=segment_count)
+                use_all_data(create_equal_segments, data_path, user_save_path, segment_count=segment_count)
             elif user_selection == 'ds':
-                use_all_data(create_diminishing_segments, data_folder_path, save_folder_path,
+                use_all_data(create_diminishing_segments, data_path, user_save_path,
                              segment_count=segment_count)
 
         elif user_selection == 'mb':
             math_test_bench()
+        elif user_selection == 'ce':
+            while 1:
+                user_method = input("generation method (q:quit): ")
+                if user_method == "sg":
+                    compare_error(grow_segments, data_path, user_save_path)
+                elif user_method == "sg_dc":
+                    compare_error(grow_segments_divide_and_conquer_midpoint_only, data_path, user_save_path)
+                elif user_method == "es":
+                    compare_error(create_equal_segments, data_path, user_save_path)
+                elif user_method == "ds":
+                    compare_error(create_diminishing_segments, data_path, user_save_path)
+                elif user_method == 'q':
+                    break
+                else:
+                    print("\nplease input another generation method\n")
+
         elif user_selection == 'q':
             exit()
         else:
-            print("Invalid selection, please try again")
-
-        print("\n===== Operation complete =====\n")
+            print("\nInvalid selection, please try again\n")
 
 
 def set_data_folder():
@@ -642,9 +596,8 @@ def set_data_folder():
 
     return folder_path
 
+
 # run code only when called as a script
 if __name__ == "__main__":
     directory = set_data_folder()
-    # compare_error(grow_segments, directory)
-    # compare_error(grow_segments_divide_and_conquer, directory)
-    pick_method_and_save_all(data_folder_path=directory)
+    pick_method_and_save_all(data_path=directory)
