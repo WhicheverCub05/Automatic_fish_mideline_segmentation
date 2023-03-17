@@ -2,6 +2,7 @@
 # second: generate fish spine segments that will fit wave
 import math
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import pandas as pd
 import numpy as np
 import os.path
@@ -9,6 +10,7 @@ from os import path
 import sys
 import glob  # used to find
 import csv
+import time
 
 
 # implementation of growth algorithm
@@ -137,7 +139,7 @@ def math_test_bench():
 
         ym = ((-1 / gr) * x) + midline_point[1] - ((-1 / gr) * midline_point[0])
 
-        error = find_error(segment_end, segment_beginning, midline_point)
+        error = find_linear_error(segment_end, segment_beginning, midline_point)
 
         print("error:", error)
 
@@ -196,13 +198,42 @@ def create_diminishing_segments(midline, segment_count, *frame):
     return joints
 
 
-def find_area_error(segment_beginning, segment_end, midline_function):
-    midline_point = int((segment_end[2] - segment_beginning[2]) / 2)
+def find_area_error(start_index, end_index, frame, midline):
+    # first, find area under midline
+    total_area_under_midline = 0
+    for m in range(end_index, start_index - 1):
+        mp_s = midline[start_index][frame]
+        mp_e = midline[end_index][frame]
+        x_diff = abs(mp_s[0] - mp_e[0])
 
-    # get function of midline curve
+        if mp_s[1] < mp_e[1]:
+            area_major = mp_s[1] * x_diff
+        else:
+            area_major = mp_e[1] * x_diff
+
+        area_minor = (abs(mp_s[0] - mp_e[0]) * abs(mp_s[1] - mp_e[1])) / 2
+        total_area_under_midline += (area_major + area_minor)
+
+    # then find area under the line that intersects the midline
+    mp_s = midline[start_index][frame]
+    mp_e = midline[end_index][frame]
+    x_diff = abs(mp_s[0] - mp_e[0])
+
+    if mp_s[1] < mp_e[1]:
+        total_area_under_line = mp_s[1] * x_diff
+    else:
+        total_area_under_line = mp_e[1] * x_diff
+
+    # determine difference between midline area and segment line area which is the error
+    if total_area_under_line > total_area_under_midline:
+        area_difference = total_area_under_line - total_area_under_midline
+    else:
+        area_difference = total_area_under_midline - total_area_under_line
+
+    return area_difference
 
 
-def find_error(segment_end, segment_beginning, midline_point):
+def find_linear_error(segment_end, segment_beginning, midline_point):
     if segment_end[1] - segment_beginning[1] == 0 or segment_end[0] - segment_beginning[0] == 0:
         # gradient is 0 so perpendicular line is undefined
         return 0
@@ -254,7 +285,7 @@ def grow_segments_binary_search(midline, error_threshold):
             while not segment_built:
                 error = 0
                 for j in range(start + 1, end - 1, 1):
-                    tmp_error = find_error(segment_end, segment_beginning, midline[j][f])
+                    tmp_error = find_linear_error(segment_end, segment_beginning, midline[j][f])
                     if tmp_error > error:
                         error = tmp_error
                     if error >= error_threshold:
@@ -336,7 +367,7 @@ def grow_segments_binary_search_midpoint_only(midline, error_threshold):
 
             while not segment_built:
                 error_index = (segment_end[2] + joints[len(joints) - 1][2]) // 2
-                error = find_error(segment_end, segment_beginning, midline[error_index][f])
+                error = find_linear_error(segment_end, segment_beginning, midline[error_index][f])
 
                 mid = (start + end) // 2
 
@@ -399,7 +430,7 @@ def grow_segments(midline, error_threshold):
             segment_end[1] = midline[increments][f][1]
 
             for i in range(joints[len(joints) - 1][2], increments, 1):
-                tmp_error = find_error(segment_end, segment_beginning, midline[i][f])
+                tmp_error = find_linear_error(segment_end, segment_beginning, midline[i][f])
 
                 if frame_error < tmp_error:
                     frame_error = tmp_error
@@ -449,12 +480,13 @@ def joints_to_length(joints):
     return segments
 
 
-def use_all_data(generation_method, data_path, save_path, **parameters):
+def use_all_folder_data(generation_method, data_path, save_path, **parameters):
     all_files = glob.glob(data_path + '/*.xls')
     print("all_files: ", all_files)
 
     for f in range(len(all_files) - 1):
         fish_midline = load_midline_data(all_files[f])
+        start_time = time.perf_counter()
 
         if 'error_threshold' in parameters:
             joints = generation_method(midline=fish_midline, error_threshold=parameters['error_threshold'])
@@ -463,7 +495,9 @@ def use_all_data(generation_method, data_path, save_path, **parameters):
         else:
             joints = generation_method(midline=fish_midline)
 
-        print("- Generation method: ", generation_method.__name__, " -")
+        generation_time = time.perf_counter() - start_time
+
+        print("- Generation method: ", generation_method.__name__, f" time: {generation_time:.4f}s", " -")
 
         for i in range(len(fish_midline[0])):
             for j in range(len(joints)):
@@ -490,7 +524,7 @@ def use_all_data(generation_method, data_path, save_path, **parameters):
         plt.cla()
 
 
-def compare_error(generation_method, data_path, save_path):
+def compare_method_error(generation_method, data_path, save_path):
     # folder_path = "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and Ted/midlines/"
     all_files = glob.glob(data_path + '/*.xls')
 
@@ -503,7 +537,7 @@ def compare_error(generation_method, data_path, save_path):
 
     csv_file_writer = csv.writer(csv_file)
 
-    csv_file_writer.writerow(['error_threshold', 'number of joints, fish_info'])
+    csv_file_writer.writerow(['error_threshold', 'number of joints', 'time to generate', 'fish_info'])
 
     plt.cla()
     for f in range(len(all_files) - 1):
@@ -515,8 +549,10 @@ def compare_error(generation_method, data_path, save_path):
         for i in range(40):
             # matplotlib.animation
             error_threshold = (i + 1) * 0.05
+            start_time = time.perf_counter()
             joints = generation_method(midline=fish_midline, error_threshold=error_threshold)
-            csv_file_writer.writerow([error_threshold, len(joints),
+            generation_time = time.perf_counter() - start_time
+            csv_file_writer.writerow([error_threshold, len(joints), generation_time,
                                       all_files[f][len(all_files[f]) - 30:len(all_files[f]) - 15:1]])
             plt.scatter(error_threshold, len(joints))
 
@@ -564,7 +600,6 @@ def pick_method_and_save_all(data_path, *save_path):
     user_selection = ""
 
     # menu user menu selection
-
     while user_selection != 'q':
 
         for option in ui_dictionary:
@@ -587,13 +622,13 @@ def pick_method_and_save_all(data_path, *save_path):
                     break
 
             if user_selection == 'sg':
-                use_all_data(grow_segments, data_path, user_save_path, error_threshold=error_threshold)
+                use_all_folder_data(grow_segments, data_path, user_save_path, error_threshold=error_threshold)
             elif user_selection == 'sg_bs':
-                use_all_data(grow_segments_binary_search, data_path, user_save_path,
-                             error_threshold=error_threshold)
+                use_all_folder_data(grow_segments_binary_search, data_path, user_save_path,
+                                    error_threshold=error_threshold)
             elif user_selection == 'sg_bs_mp':
-                use_all_data(grow_segments_binary_search_midpoint_only, data_path, user_save_path,
-                             error_threshold=error_threshold)
+                use_all_folder_data(grow_segments_binary_search_midpoint_only, data_path, user_save_path,
+                                    error_threshold=error_threshold)
 
         elif user_selection == 'es' or user_selection == 'ds':
             while 1:
@@ -607,10 +642,10 @@ def pick_method_and_save_all(data_path, *save_path):
                     break
 
             if user_selection == 'es':
-                use_all_data(create_equal_segments, data_path, user_save_path, segment_count=segment_count)
+                use_all_folder_data(create_equal_segments, data_path, user_save_path, segment_count=segment_count)
             elif user_selection == 'ds':
-                use_all_data(create_diminishing_segments, data_path, user_save_path,
-                             segment_count=segment_count)
+                use_all_folder_data(create_diminishing_segments, data_path, user_save_path,
+                                    segment_count=segment_count)
 
         elif user_selection == 'mb':
             math_test_bench()
@@ -618,15 +653,15 @@ def pick_method_and_save_all(data_path, *save_path):
             while 1:
                 user_method = input("generation method (q:quit): ")
                 if user_method == "sg":
-                    compare_error(grow_segments, data_path, user_save_path)
+                    compare_method_error(grow_segments, data_path, user_save_path)
                 elif user_method == "sg_bs":
-                    compare_error(grow_segments_binary_search, data_path, user_save_path)
+                    compare_method_error(grow_segments_binary_search, data_path, user_save_path)
                 elif user_method == "sg_bs_mp":
-                    compare_error(grow_segments_binary_search_midpoint_only, data_path, user_save_path)
+                    compare_method_error(grow_segments_binary_search_midpoint_only, data_path, user_save_path)
                 elif user_method == "es":
-                    compare_error(create_equal_segments, data_path, user_save_path)
+                    compare_method_error(create_equal_segments, data_path, user_save_path)
                 elif user_method == "ds":
-                    compare_error(create_diminishing_segments, data_path, user_save_path)
+                    compare_method_error(create_diminishing_segments, data_path, user_save_path)
                 elif user_method == 'q':
                     break
                 else:
@@ -671,7 +706,25 @@ def set_data_folder():
     return folder_path
 
 
+def animate_area_error(i):
+    print("This I:", i)
+    directory = set_data_folder()
+    # pick_method_and_save_all(data_path=directory)
+    fish_midline = load_midline_data(glob.glob(directory + '/*.xls')[0])  # first Excel file in directory
+    for m in range(len(fish_midline)):
+        error = find_area_error(0, m, 0, fish_midline)
+        print("Error:", error, " I:", i)
+        plot_midline(fish_midline, 0)
+        plt.scatter(fish_midline[m][0][0], fish_midline[m][0][1], color="red", label=f'{error}')
+        plt.legend(loc="upper right")
+        plt.cla()
+
+fig = plt.figure()
+ax1 = fig.add_subplot(1,1,1)
+
 # run code only when called as a script
 if __name__ == "__main__":
-    directory = set_data_folder()
-    pick_method_and_save_all(data_path=directory)
+    # directory = set_data_folder()
+    # pick_method_and_save_all(data_path=directory)
+    ani = animation.FuncAnimation(fig, animate_area_error, interval=1000)
+    plt.show()
