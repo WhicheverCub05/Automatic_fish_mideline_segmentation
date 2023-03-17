@@ -1,19 +1,19 @@
 # first: use matplotlib to generate waves of different wavelengths/amplitudes, so you can visualise segment accuracy
 # second: generate fish spine segments that will fit wave
+# import local files
+import generation_methods as gm
+import demonstration as de
+
+# import other libraries
 import math
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import pandas as pd
-import numpy as np
 import os.path
 from os import path
 import sys
-import glob  # used to find
+import glob
 import csv
 import time
-
-
-# implementation of growth algorithm
 
 
 # get data from every other line for now
@@ -101,364 +101,6 @@ def plot_midline(midline, *columns):
 
     plt.xlabel("x")
     plt.ylabel("y")
-
-
-def math_test_bench():
-    x = np.arange(0, 3 * np.pi, 0.1)
-    y = np.sin(x)
-
-    data = [[0.7, 1.0], [1.7, 1.5], [2.3, 2.7], [2.8, 3.7], [3.7, 4]]
-
-    for d in data:
-        plt.plot(d[0], d[1], 'bo', ls='--')
-
-    start = 0
-    end = 4
-
-    segment_beginning = data[start]
-    segment_end = data[end]
-
-    y1 = segment_beginning[1]
-    y2 = segment_end[1]
-
-    x1 = segment_beginning[0]
-    x2 = segment_end[0]
-
-    print("y1:", y1, " y2:", y2, " x1:", x1, " x2:", x2)
-    gr = (y2 - y1) / (x2 - x1)
-
-    c = y1 - (gr * x1)
-
-    x = np.linspace(0, 10, 100)
-    y = (gr * x) + c
-    plt.plot(x, y, '-b')
-
-    # iterate from segment_beginning index to segment_end index, incrementing midline_point index
-    for i in range(start + 1, end, 1):
-        midline_point = data[i]
-
-        ym = ((-1 / gr) * x) + midline_point[1] - ((-1 / gr) * midline_point[0])
-
-        error = find_linear_error(segment_end, segment_beginning, midline_point)
-
-        print("error:", error)
-
-        c_intersection = midline_point[1] - ((-1 / gr) * midline_point[0])
-        print("C_intersection:", c_intersection)
-
-        x_intersection = abs((c - c_intersection) / (gr - (-1 / gr)))
-        y_intersection = ((-1 / gr) * x_intersection) + c_intersection
-
-        print("intersection:", x_intersection, ",", y_intersection)
-        plt.scatter(x_intersection, y_intersection, color='green', label='(%d,%d)' % (x_intersection, y_intersection))
-        plt.annotate(str([x_intersection, y_intersection]), [x_intersection, y_intersection])
-
-        plt.plot(x, ym, '-r', label='(%d)' % error)
-
-    plt.legend(loc="upper right")
-    plt.ylim(0, 5)
-    plt.xlim(0, 5)
-    plt.show()
-
-
-# implementation of equally divided segments
-def create_equal_segments(midline, segment_count, *frame):
-    joints = [[0 for _ in range(3)] for _ in range(0)]
-    column = 0
-
-    if frame:
-        column = frame
-
-    for i in range(segment_count):
-        increment = int((i / segment_count) * len(midline))
-        x = midline[increment][column][0]
-        y = midline[increment][column][1]
-        joints.append([x, y, increment])
-
-    return joints
-
-
-# create segments of diminishing size but add up to 1
-def create_diminishing_segments(midline, segment_count, *frame):
-    joints = [[0 for _ in range(3)] for _ in range(0)]
-    length = len(midline)
-    increment = 0
-    column = 0
-
-    if frame:
-        column = frame
-
-    for i in range(segment_count):
-        x = midline[increment][column][0]
-        y = midline[increment][column][1]
-        joints.append([x, y, increment])
-        increment += length // 2
-        length = length // 2
-        print("increment: ", increment)
-    return joints
-
-
-def find_area_error(start_index, end_index, frame, midline):
-    # first, find area under midline
-    total_area_under_midline = 0
-    for m in range(end_index, start_index - 1):
-        mp_s = midline[start_index][frame]
-        mp_e = midline[end_index][frame]
-        x_diff = abs(mp_s[0] - mp_e[0])
-
-        if mp_s[1] < mp_e[1]:
-            area_major = mp_s[1] * x_diff
-        else:
-            area_major = mp_e[1] * x_diff
-
-        area_minor = (abs(mp_s[0] - mp_e[0]) * abs(mp_s[1] - mp_e[1])) / 2
-        total_area_under_midline += (area_major + area_minor)
-
-    # then find area under the line that intersects the midline
-    mp_s = midline[start_index][frame]
-    mp_e = midline[end_index][frame]
-    x_diff = abs(mp_s[0] - mp_e[0])
-
-    if mp_s[1] < mp_e[1]:
-        total_area_under_line = mp_s[1] * x_diff
-    else:
-        total_area_under_line = mp_e[1] * x_diff
-
-    # determine difference between midline area and segment line area which is the error
-    if total_area_under_line > total_area_under_midline:
-        area_difference = total_area_under_line - total_area_under_midline
-    else:
-        area_difference = total_area_under_midline - total_area_under_line
-
-    return area_difference
-
-
-def find_linear_error(segment_end, segment_beginning, midline_point):
-    if segment_end[1] - segment_beginning[1] == 0 or segment_end[0] - segment_beginning[0] == 0:
-        # gradient is 0 so perpendicular line is undefined
-        return 0
-
-    gradient = (segment_end[1] - segment_beginning[1]) / (segment_end[0] - segment_beginning[0])
-    c = segment_end[1] - (gradient * segment_end[0])
-
-    perpendicular_gradient = -1 / gradient
-    perpendicular_c = midline_point[1] - (perpendicular_gradient * midline_point[0])
-
-    x = abs((c - perpendicular_c) / (gradient - perpendicular_gradient))
-    y = (gradient * x) + c
-
-    error = abs(np.sqrt((x - midline_point[0]) ** 2 + (y - midline_point[1]) ** 2))
-    return error
-
-
-def grow_segments_binary_search(midline, error_threshold):
-    joints = [[0 for _ in range(3)] for _ in range(0)]
-    joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
-
-    segment_beginning = [0, 0, 0]  # x, y, midline row index
-    segment_end = [0, 0, 0]
-
-    completed = False
-
-    while not completed:
-
-        tmp_joints = [[0 for _ in range(3)] for _ in range(0)]
-        avg_joint = 0
-        avg_end_error = 0
-        for f in range(len(midline[0])):
-
-            segment_beginning[0] = midline[joints[len(joints) - 1][2]][f][0]
-            segment_beginning[1] = midline[joints[len(joints) - 1][2]][f][1]
-            segment_beginning[2] = joints[len(joints) - 1][2]
-
-            segment_end[0] = midline[len(midline) - 1][f][0]
-            segment_end[1] = midline[len(midline) - 1][f][1]
-            segment_end[2] = len(midline) - 1
-
-            start = segment_beginning[2]
-            end = len(midline) - 1
-
-            divisions = 1
-
-            segment_built = False
-
-            while not segment_built:
-                error = 0
-                for j in range(start + 1, end - 1, 1):
-                    tmp_error = find_linear_error(segment_end, segment_beginning, midline[j][f])
-                    if tmp_error > error:
-                        error = tmp_error
-                    if error >= error_threshold:
-                        break
-
-                mid = (start + end) // 2
-
-                if end <= start:
-                    segment_built = True
-                    tmp_joints.append(segment_end)
-                    avg_joint += segment_end[2]
-
-                if end == len(midline) - 1:
-                    avg_end_error += error
-
-                if error >= error_threshold:
-                    end = mid - 1
-                    segment_end[2] = end  # was int(midline_range / 2 ** divisions)
-                    segment_end[1] = midline[segment_end[2]][f][1]
-                    segment_end[0] = midline[segment_end[2]][f][0]
-                    divisions += 1
-
-                elif error < error_threshold:
-                    start = mid + 1
-                    if start < len(midline):
-                        segment_end[2] = start  # was int(midline_range / 2 ** divisions)
-                        segment_end[1] = midline[segment_end[2]][f][1]
-                        segment_end[0] = midline[segment_end[2]][f][0]
-                        divisions += 1
-
-        avg_joint = avg_joint // len(tmp_joints)
-
-        joints.append([midline[avg_joint][0][0], midline[avg_joint][0][1], avg_joint])
-
-        # print("Adding joint:", joints[len(joints) - 1])
-
-        if (avg_end_error / len(midline[0])) < error_threshold:
-            # print("avg_end_error:", avg_end_error / len(midline[0]), " avg_joint:", avg_joint)
-            completed = True
-
-    joints.pop()
-
-    return joints
-
-
-# another option - for each joint, generate segments for 1 frame. try segment on other frames and reduce size as needed
-
-# optimises the generation method by using greedy binary search
-def grow_segments_binary_search_midpoint_only(midline, error_threshold):
-    joints = [[0 for _ in range(3)] for _ in range(0)]
-    joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
-
-    segment_beginning = [0, 0, 0]  # x, y, midline row index
-    segment_end = [0, 0, 0]
-
-    completed = False
-
-    while not completed:
-
-        tmp_joints = [[0 for _ in range(3)] for _ in range(0)]
-        avg_joint = 0
-        avg_end_error = 0
-        for f in range(len(midline[0])):
-
-            segment_beginning[0] = midline[joints[len(joints) - 1][2]][f][0]
-            segment_beginning[1] = midline[joints[len(joints) - 1][2]][f][1]
-            segment_beginning[2] = joints[len(joints) - 1][2]
-
-            segment_end[0] = midline[len(midline) - 1][f][0]
-            segment_end[1] = midline[len(midline) - 1][f][1]
-            segment_end[2] = len(midline) - 1
-
-            start = segment_beginning[2]
-            end = len(midline) - 1
-
-            divisions = 1
-
-            segment_built = False
-
-            while not segment_built:
-                error_index = (segment_end[2] + joints[len(joints) - 1][2]) // 2
-                error = find_linear_error(segment_end, segment_beginning, midline[error_index][f])
-
-                mid = (start + end) // 2
-
-                if end <= start:
-                    segment_built = True
-                    tmp_joints.append(segment_end)
-                    avg_joint += segment_end[2]
-
-                if end == len(midline) - 1:
-                    avg_end_error += error
-
-                if error >= error_threshold:
-                    end = mid - 1
-                    segment_end[2] = end  # was int(midline_range / 2 ** divisions)
-                    segment_end[1] = midline[segment_end[2]][f][1]
-                    segment_end[0] = midline[segment_end[2]][f][0]
-                    divisions += 1
-
-                elif error < error_threshold:
-                    start = mid + 1
-                    if start < len(midline):
-                        segment_end[2] = start  # was int(midline_range / 2 ** divisions)
-                        segment_end[1] = midline[segment_end[2]][f][1]
-                        segment_end[0] = midline[segment_end[2]][f][0]
-                        divisions += 1
-
-        avg_joint = avg_joint // len(tmp_joints)
-
-        joints.append([midline[avg_joint][0][0], midline[avg_joint][0][1], avg_joint])
-
-        # print("Adding joint:", joints[len(joints) - 1])
-
-        if (avg_end_error / len(midline[0])) < error_threshold:
-            # print("avg_end_error:", avg_end_error / len(midline[0]), " avg_joint:", avg_joint)
-            completed = True
-
-    joints.pop()
-
-    return joints
-
-
-def grow_segments(midline, error_threshold):
-    joints = [[0 for _ in range(3)] for _ in range(0)]
-    joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
-
-    segment_beginning = [0, 0]
-    segment_end = [0, 0]
-    increments = 2  # start at 2 as first increment is going to have 0 error
-
-    while increments < len(midline):
-        total_error = 0
-
-        for f in range(len(midline[0])):
-            frame_error = 0
-
-            segment_beginning[0] = midline[joints[len(joints) - 1][2]][f][0]
-            segment_beginning[1] = midline[joints[len(joints) - 1][2]][f][1]
-
-            segment_end[0] = midline[increments][f][0]
-            segment_end[1] = midline[increments][f][1]
-
-            for i in range(joints[len(joints) - 1][2], increments, 1):
-                tmp_error = find_linear_error(segment_end, segment_beginning, midline[i][f])
-
-                if frame_error < tmp_error:
-                    frame_error = tmp_error
-
-            total_error += frame_error
-
-        total_error /= len(midline[0])  # total frames
-
-        if total_error < error_threshold:
-            # print("ye: ", increments, " f: ", f, " error: ", total_error)
-            increments += 1
-
-        elif total_error >= error_threshold:
-            increments -= 1
-
-            if increments <= joints[len(joints) - 1][2]:
-                print("stuck on increment: ", increments, "error: ", total_error, "segment_beginning: ",
-                      segment_beginning, "segment_end: ", segment_end)
-                break
-            else:
-                joints.append([midline[increments][0][0],
-                               midline[increments][0][1], increments])
-                # print("Adding joint: ", joints[len(joints) - 1])
-
-        else:
-            print("Houston, we have a problem")
-
-    return joints
 
 
 # turn joint data to actual lengths
@@ -622,12 +264,12 @@ def pick_method_and_save_all(data_path, *save_path):
                     break
 
             if user_selection == 'sg':
-                use_all_folder_data(grow_segments, data_path, user_save_path, error_threshold=error_threshold)
+                use_all_folder_data(gm.grow_segments, data_path, user_save_path, error_threshold=error_threshold)
             elif user_selection == 'sg_bs':
-                use_all_folder_data(grow_segments_binary_search, data_path, user_save_path,
+                use_all_folder_data(gm.grow_segments_binary_search, data_path, user_save_path,
                                     error_threshold=error_threshold)
             elif user_selection == 'sg_bs_mp':
-                use_all_folder_data(grow_segments_binary_search_midpoint_only, data_path, user_save_path,
+                use_all_folder_data(gm.grow_segments_binary_search_midpoint_only, data_path, user_save_path,
                                     error_threshold=error_threshold)
 
         elif user_selection == 'es' or user_selection == 'ds':
@@ -642,26 +284,26 @@ def pick_method_and_save_all(data_path, *save_path):
                     break
 
             if user_selection == 'es':
-                use_all_folder_data(create_equal_segments, data_path, user_save_path, segment_count=segment_count)
+                use_all_folder_data(gm.create_equal_segments, data_path, user_save_path, segment_count=segment_count)
             elif user_selection == 'ds':
-                use_all_folder_data(create_diminishing_segments, data_path, user_save_path,
+                use_all_folder_data(gm.create_diminishing_segments, data_path, user_save_path,
                                     segment_count=segment_count)
 
         elif user_selection == 'mb':
-            math_test_bench()
+            de.math_test_bench()
         elif user_selection == 'ce':
             while 1:
                 user_method = input("generation method (q:quit): ")
                 if user_method == "sg":
-                    compare_method_error(grow_segments, data_path, user_save_path)
+                    compare_method_error(gm.grow_segments, data_path, user_save_path)
                 elif user_method == "sg_bs":
-                    compare_method_error(grow_segments_binary_search, data_path, user_save_path)
+                    compare_method_error(gm.grow_segments_binary_search, data_path, user_save_path)
                 elif user_method == "sg_bs_mp":
-                    compare_method_error(grow_segments_binary_search_midpoint_only, data_path, user_save_path)
+                    compare_method_error(gm.grow_segments_binary_search_midpoint_only, data_path, user_save_path)
                 elif user_method == "es":
-                    compare_method_error(create_equal_segments, data_path, user_save_path)
+                    compare_method_error(gm.create_equal_segments, data_path, user_save_path)
                 elif user_method == "ds":
-                    compare_method_error(create_diminishing_segments, data_path, user_save_path)
+                    compare_method_error(gm.create_diminishing_segments, data_path, user_save_path)
                 elif user_method == 'q':
                     break
                 else:
@@ -706,25 +348,7 @@ def set_data_folder():
     return folder_path
 
 
-def animate_area_error(i):
-    print("This I:", i)
-    directory = set_data_folder()
-    # pick_method_and_save_all(data_path=directory)
-    fish_midline = load_midline_data(glob.glob(directory + '/*.xls')[0])  # first Excel file in directory
-    for m in range(len(fish_midline)):
-        error = find_area_error(0, m, 0, fish_midline)
-        print("Error:", error, " I:", i)
-        plot_midline(fish_midline, 0)
-        plt.scatter(fish_midline[m][0][0], fish_midline[m][0][1], color="red", label=f'{error}')
-        plt.legend(loc="upper right")
-        plt.cla()
-
-fig = plt.figure()
-ax1 = fig.add_subplot(1,1,1)
-
 # run code only when called as a script
 if __name__ == "__main__":
-    # directory = set_data_folder()
-    # pick_method_and_save_all(data_path=directory)
-    ani = animation.FuncAnimation(fig, animate_area_error, interval=1000)
-    plt.show()
+    directory = set_data_folder()
+    pick_method_and_save_all(data_path=directory)
