@@ -2,6 +2,7 @@
 import numpy as np
 
 
+# finds the area between a joint and midline
 def find_area_error(start_index, end_index, frame, midline):
     # first, find area under midline
     total_area_under_midline = 0
@@ -37,6 +38,7 @@ def find_area_error(start_index, end_index, frame, midline):
     return area_difference
 
 
+# finds error by calculating distance between perpendicular of joint and midline area
 def find_linear_error(segment_end, segment_beginning, midline_point):
     if segment_end[1] - segment_beginning[1] == 0 or segment_end[0] - segment_beginning[0] == 0:
         # gradient is 0 so perpendicular line is undefined
@@ -50,6 +52,6 @@ def find_linear_error(segment_end, segment_beginning, midline_point):
 
     x = abs((c - perpendicular_c) / (gradient - perpendicular_gradient))
     y = (gradient * x) + c
-
+    # distance between 2 points on a graph
     error = abs(np.sqrt((x - midline_point[0]) ** 2 + (y - midline_point[1]) ** 2))
     return error

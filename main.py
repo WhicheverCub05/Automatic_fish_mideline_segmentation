@@ -1,6 +1,4 @@
-# first: use matplotlib to generate waves of different wavelengths/amplitudes, so you can visualise segment accuracy
-# second: generate fish spine segments that will fit wave
-# import local files
+# importing local project libraries
 import generation_methods as gm
 import demonstration as de
 
@@ -16,7 +14,7 @@ import csv
 import time
 
 
-# get data from every other line for now
+# creates a 2D array of x,y values for each frame in the Excel file
 def load_midline_data(location):
     print("Loading:", location)
     try:
@@ -38,7 +36,7 @@ def load_midline_data(location):
         print("the file is not found")
 
 
-# asks the user to set a filepath to save data
+# asks the user to set a filepath to save their data to
 def get_user_save_path(data_path, *save_path):
     while 1:
         if save_path:
@@ -80,6 +78,7 @@ def get_user_save_path(data_path, *save_path):
     return folder_path
 
 
+# each frame of the midline
 def plot_midline(midline, *columns):
     if columns:
         for c in columns:
@@ -122,6 +121,8 @@ def joints_to_length(joints):
     return segments
 
 
+# This function is used to generate .svg graphs using all the Excel data in a directory
+# and then saves them to the user's path
 def use_all_folder_data(generation_method, data_path, save_path, **parameters):
     all_files = glob.glob(data_path + '/*.xls')
     print("all_files: ", all_files)
@@ -166,6 +167,8 @@ def use_all_folder_data(generation_method, data_path, save_path, **parameters):
         plt.cla()
 
 
+# function uses a generation method and compares the number of joints and time to generate
+# for error between 0.05 and 2, in increments of 0.05. This is all saved to a .csv file
 def compare_method_error(generation_method, data_path, save_path):
     # folder_path = "/mnt/chromeos/MyFiles/Y3_Project/Fish data/Data/Sturgeon from Elsa and Ted/midlines/"
     all_files = glob.glob(data_path + '/*.xls')
@@ -229,7 +232,6 @@ def pick_method_and_save_all(data_path, *save_path):
         'sg_bs_mp': "grow_segments_binary_search_midpoint_only",
         'es': "create_equal_segments",
         'ds': "create_diminishing_segments",
-        'mb': "math_test_bench",
         'ce': "compare method with increasing error",
         'q': 'exit script'
     }
@@ -289,8 +291,6 @@ def pick_method_and_save_all(data_path, *save_path):
                 use_all_folder_data(gm.create_diminishing_segments, data_path, user_save_path,
                                     segment_count=segment_count)
 
-        elif user_selection == 'mb':
-            de.math_test_bench()
         elif user_selection == 'ce':
             while 1:
                 user_method = input("generation method (q:quit): ")
@@ -315,6 +315,7 @@ def pick_method_and_save_all(data_path, *save_path):
             print("\nInvalid selection, please try again\n")
 
 
+# sets the folder location of the Excel data that we use
 def set_data_folder():
     # get file path from user, load data
     print("-Set the file location of the database-")

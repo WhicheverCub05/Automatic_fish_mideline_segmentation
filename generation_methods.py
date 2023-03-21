@@ -39,6 +39,8 @@ def create_diminishing_segments(midline, segment_count, *frame):
     return joints
 
 
+# growth method from Dr.Otar's paper. An increment is made and compared for max error for each frame.
+# If the avg error is below the threshold, add an increment and compare avg max error.
 def grow_segments(midline, error_threshold):
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
@@ -58,7 +60,7 @@ def grow_segments(midline, error_threshold):
 
             segment_end[0] = midline[increments][f][0]
             segment_end[1] = midline[increments][f][1]
-
+            # get maximum error between joint and increments
             for i in range(joints[len(joints) - 1][2], increments, 1):
                 tmp_error = ce.find_linear_error(segment_end, segment_beginning, midline[i][f])
 
@@ -67,7 +69,7 @@ def grow_segments(midline, error_threshold):
 
             total_error += frame_error
 
-        total_error /= len(midline[0])  # total frames
+        total_error /= len(midline[0])  # avg of error for that joint, for all frames.
 
         if total_error < error_threshold:
             # print("ye: ", increments, " f: ", f, " error: ", total_error)
@@ -91,6 +93,8 @@ def grow_segments(midline, error_threshold):
     return joints
 
 
+# Grows the segments but uses a binary search technique.
+# Joints are compared from start to the end of the midline, and halved if max error is over threshold
 def grow_segments_binary_search(midline, error_threshold):
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
@@ -249,5 +253,70 @@ def grow_segments_binary_search_midpoint_only(midline, error_threshold):
     return joints
 
 
+# finds a point with the highest gradient from current joint
+# and tries to add a joint if the avg error for all frames is less than threshold.
+# if the joint can't be added due to high error, try out previous midline points until the joint can be added
+def create_joints_from_inflection(midline, error_threshold):
+    joints = [[0 for _ in range(3)] for _ in range(0)]
+    joints.append([midline[0][0][0], midline[0][0][1], 0])
 
+    segment_beginning = [0, 0, 0]  # x, y, midline row index
+    segment_end = [0, 0, 0]
 
+    completed = False
+
+    while not completed:
+        inflection_point = 0
+        total_error = 0
+        tmp_error = 0
+        for f in range(len(midline[0])):
+            frame_error = 0
+            max_gradient = 0
+            inflection_point = 0
+            segment_beginning = midline[joints[len(joints) - 1]][f]
+            # find inflection and error for it
+            for j in range(joints[len(joints) - 1][2], len(midline) - 1):
+
+                segment_end = midline[j][f]
+                tmp_gradient = abs((segment_end[1] - segment_beginning[1]) / (segment_end[0] - segment_beginning[0]))
+
+                # find max gradient which is an inflection
+                if tmp_gradient > max_gradient:
+                    max_gradient = tmp_gradient
+                    inflection_point += 1
+                else:
+                    inflection_point -= 1
+                    break
+
+            for i in range(joints[len(joints) - 1][2], inflection_point):
+                tmp_error = ce.find_linear_error(segment_end, segment_beginning, midline[i][f])
+
+                if frame_error < tmp_error:
+                    frame_error = tmp_error
+
+            total_error += frame_error
+
+        total_error /= len(midline[0])
+
+        while total_error > error_threshold:
+
+            inflection_point -= 1
+
+            for f in range(len(midline[0])):
+                frame_error = 0
+                segment_end = midline[inflection_point][f]
+                segment_end[2] = inflection_point
+                for i in reversed(range(joints[len(joints) - 1][2], inflection_point)):
+                    tmp_error = tmp_error = ce.find_linear_error(segment_end, segment_beginning, midline[i][f])
+
+                    if frame_error < tmp_error:
+                        frame_error = tmp_error
+
+                total_error += frame_error
+
+            total_error /= len(midline[0])
+
+        if inflection_point >= len(midline):
+            completed = True
+
+    return joints
