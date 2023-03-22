@@ -142,12 +142,12 @@ def use_all_folder_data(generation_method, data_path, save_path, **parameters):
 
         print("- Generation method: ", generation_method.__name__, f" time: {generation_time:.4f}s", " -")
 
-        for i in range(len(fish_midline[0])):
+        for i in range(2):
             for j in range(len(joints)):
                 plt.scatter(fish_midline[joints[j][2]][i][0],
                             fish_midline[joints[j][2]][i][1], color='green')
 
-        plot_midline(fish_midline)
+        plot_midline(fish_midline, 0, 1)
 
         joints_to_length(joints)
 
@@ -227,8 +227,9 @@ def pick_method_and_save_all(data_path, *save_path):
     # let user pick method and error and save
 
     ui_dictionary = {
-        "sg": "grow_segments",
-        "sg_bs": "grow_segments_binary_search",
+        'sg': "grow_segments",
+        'sg_i': "grow_segments_from_inflection",
+        'sg_bs': "grow_segments_binary_search",
         'sg_bs_mp': "grow_segments_binary_search_midpoint_only",
         'es': "create_equal_segments",
         'ds': "create_diminishing_segments",
@@ -253,7 +254,8 @@ def pick_method_and_save_all(data_path, *save_path):
         if user_selection not in ui_dictionary:
             print("\noption not available\n")
 
-        if user_selection == 'sg' or user_selection == 'sg_bs' or user_selection == 'sg_bs_mp':
+        if user_selection == 'sg' or user_selection == 'sg_bs' \
+                or user_selection == 'sg_bs_mp' or user_selection == 'sg_i':
             while 1:
                 try:
                     error_threshold = float(input("Input an error threshold value: "))
@@ -267,6 +269,9 @@ def pick_method_and_save_all(data_path, *save_path):
 
             if user_selection == 'sg':
                 use_all_folder_data(gm.grow_segments, data_path, user_save_path, error_threshold=error_threshold)
+            elif user_selection == 'sg_i':
+                use_all_folder_data(gm.grow_segments_from_inflection, data_path, user_save_path,
+                                    error_threshold=error_threshold)
             elif user_selection == 'sg_bs':
                 use_all_folder_data(gm.grow_segments_binary_search, data_path, user_save_path,
                                     error_threshold=error_threshold)

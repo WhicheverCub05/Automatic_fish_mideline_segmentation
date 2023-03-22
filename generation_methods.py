@@ -256,7 +256,7 @@ def grow_segments_binary_search_midpoint_only(midline, error_threshold):
 # finds a point with the highest gradient from current joint
 # and tries to add a joint if the avg error for all frames is less than threshold.
 # if the joint can't be added due to high error, try out previous midline points until the joint can be added
-def create_joints_from_inflection(midline, error_threshold):
+def grow_segments_from_inflection(midline, error_threshold):
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])
 
@@ -266,57 +266,67 @@ def create_joints_from_inflection(midline, error_threshold):
     completed = False
 
     while not completed:
-        inflection_point = 0
+        inflection_point = joints[len(joints) - 1][2] + 1
         total_error = 0
         tmp_error = 0
+        avg_inflection_point_array = []
         for f in range(len(midline[0])):
-            frame_error = 0
+            frame_max_error = 0
             max_gradient = 0
-            inflection_point = 0
-            segment_beginning = midline[joints[len(joints) - 1]][f]
+            inflection_point = joints[len(joints) - 1][2] + 1
+            segment_beginning = midline[joints[len(joints) - 1][2]][f]
+
             # find inflection and error for it
             for j in range(joints[len(joints) - 1][2], len(midline) - 1):
 
-                segment_end = midline[j][f]
-                tmp_gradient = abs((segment_end[1] - segment_beginning[1]) / (segment_end[0] - segment_beginning[0]))
+                segment_end = midline[inflection_point][f]
 
+                if abs(segment_end[0] - segment_beginning[0]) > 0:
+                    tmp_gradient = abs((segment_end[1] - segment_beginning[1])/(segment_end[0] - segment_beginning[0]))
+                else:
+                    tmp_gradient = 0
                 # find max gradient which is an inflection
-                if tmp_gradient > max_gradient:
+                if tmp_gradient + 0.0005 >= max_gradient:  # added 0.01 as a threshold to mitigate noise
                     max_gradient = tmp_gradient
                     inflection_point += 1
                 else:
                     inflection_point -= 1
+                    avg_inflection_point_array.append(inflection_point)
                     break
 
-            for i in range(joints[len(joints) - 1][2], inflection_point):
-                tmp_error = ce.find_linear_error(segment_end, segment_beginning, midline[i][f])
+        joint_built = False
+        print("avg_inflection_point_array:", avg_inflection_point_array)
+        avg_inflection_point = sum(avg_inflection_point_array) // len(avg_inflection_point_array)
 
-                if frame_error < tmp_error:
-                    frame_error = tmp_error
+        while not joint_built:
 
-            total_error += frame_error
+            total_error = 0
+            for j in reversed(range(joints[len(joints) - 1][2], avg_inflection_point + 1)):
+                # try a previous segment until the error works for all frames
+                for f in range(len(midline[0])):
+                    segment_beginning = midline[joints[(len(joints)-1)][2]][f]
+                    segment_end = midline[j][f]
 
-        total_error /= len(midline[0])
+                    frame_max_error = 0
 
-        while total_error > error_threshold:
+                    for i in range(joints[len(joints) - 1][2], j):
+                        tmp_error = ce.find_linear_error(segment_end, segment_beginning, midline[i][f])
 
-            inflection_point -= 1
+                        if frame_max_error < tmp_error:
+                            frame_max_error = tmp_error
 
-            for f in range(len(midline[0])):
-                frame_error = 0
-                segment_end = midline[inflection_point][f]
-                segment_end[2] = inflection_point
-                for i in reversed(range(joints[len(joints) - 1][2], inflection_point)):
-                    tmp_error = tmp_error = ce.find_linear_error(segment_end, segment_beginning, midline[i][f])
+                    total_error += frame_max_error
 
-                    if frame_error < tmp_error:
-                        frame_error = tmp_error
+                total_error /= len(midline[0])
 
-                total_error += frame_error
-
-            total_error /= len(midline[0])
+                if total_error < error_threshold:
+                    joint_built = True
+                    break
 
         if inflection_point >= len(midline):
             completed = True
+        else:
+            joints.append([midline[inflection_point][0][0], midline[inflection_point][0][1], avg_inflection_point])
+            print("inflection_point to add joint:", avg_inflection_point)
 
     return joints
