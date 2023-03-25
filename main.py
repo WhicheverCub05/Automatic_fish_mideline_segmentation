@@ -142,12 +142,12 @@ def use_all_folder_data(generation_method, data_path, save_path, **parameters):
 
         print("- Generation method: ", generation_method.__name__, f" time: {generation_time:.4f}s", " -")
 
-        for i in range(2):
+        for i in [0, 7]:
             for j in range(len(joints)):
                 plt.scatter(fish_midline[joints[j][2]][i][0],
                             fish_midline[joints[j][2]][i][1], color='green')
 
-        plot_midline(fish_midline, 0, 1)
+        plot_midline(fish_midline, 0, 7)
 
         joints_to_length(joints)
 

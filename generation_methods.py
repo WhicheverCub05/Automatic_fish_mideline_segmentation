@@ -296,7 +296,11 @@ def grow_segments_from_inflection(midline, error_threshold):
 
         joint_built = False
         print("avg_inflection_point_array:", avg_inflection_point_array)
-        avg_inflection_point = sum(avg_inflection_point_array) // len(avg_inflection_point_array)
+        if len(avg_inflection_point_array) > 0:
+            avg_inflection_point = sum(avg_inflection_point_array) // len(avg_inflection_point_array)
+        else:
+            joint_built = True
+            completed = True
 
         while not joint_built:
 

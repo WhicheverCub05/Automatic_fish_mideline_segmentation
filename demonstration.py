@@ -161,10 +161,10 @@ if __name__ == "__main__":
 
         if user_option == "L":
             joint_beginning = 0
-            ani = animation.FuncAnimation(fig, linear_demonstration_animated, interval=1000)
+            ani = animation.FuncAnimation(fig, linear_demonstration_animated, interval=500)
             plt.show()
         elif user_option == "A":
-            ani = animation.FuncAnimation(fig, animate_area_error, interval=1000)
+            ani = animation.FuncAnimation(fig, animate_area_error, interval=500)
             plt.show()
         else:
             print("Please try again")
