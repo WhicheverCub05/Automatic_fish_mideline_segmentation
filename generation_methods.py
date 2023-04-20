@@ -274,31 +274,35 @@ def grow_segments_from_inflection(midline, error_threshold):
             frame_max_error = 0
             max_gradient = 0
             inflection_point = joints[len(joints) - 1][2] + 1
-            segment_beginning = midline[joints[len(joints) - 1][2]][f]
+            segment_beginning[0] = midline[joints[len(joints) - 1][2]][f][0]
+            segment_beginning[1] = midline[joints[len(joints) - 1][2]][f][1]
 
             # find inflection and error for it
             for j in range(joints[len(joints) - 1][2], len(midline) - 1):
 
-                segment_end = midline[inflection_point][f]
+                segment_end[0] = midline[inflection_point][f][0]
+                segment_end[1] = midline[inflection_point][f][1]
 
                 if abs(segment_end[0] - segment_beginning[0]) > 0:
                     tmp_gradient = abs((segment_end[1] - segment_beginning[1])/(segment_end[0] - segment_beginning[0]))
                 else:
                     tmp_gradient = 0
                 # find max gradient which is an inflection
-                if tmp_gradient + 0.0005 >= max_gradient:  # added 0.01 as a threshold to mitigate noise
+                if tmp_gradient + 0.0005 >= max_gradient:  # added as a threshold to mitigate noise
                     max_gradient = tmp_gradient
                     inflection_point += 1
                 else:
                     inflection_point -= 1
                     avg_inflection_point_array.append(inflection_point)
                     break
+            continue
 
         joint_built = False
-        print("avg_inflection_point_array:", avg_inflection_point_array)
+        # print("avg_inflection_point_array:", avg_inflection_point_array)
         if len(avg_inflection_point_array) > 0:
             avg_inflection_point = sum(avg_inflection_point_array) // len(avg_inflection_point_array)
         else:
+            avg_inflection_point = 0
             joint_built = True
             completed = True
 
@@ -331,6 +335,6 @@ def grow_segments_from_inflection(midline, error_threshold):
             completed = True
         else:
             joints.append([midline[inflection_point][0][0], midline[inflection_point][0][1], avg_inflection_point])
-            print("inflection_point to add joint:", avg_inflection_point)
+            # print("inflection_point to add joint:", avg_inflection_point)
 
     return joints
