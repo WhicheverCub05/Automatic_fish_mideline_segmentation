@@ -55,3 +55,32 @@ def find_linear_error(segment_end, segment_beginning, midline_point):
     # distance between 2 points on a graph
     error = abs(np.sqrt((x - midline_point[0]) ** 2 + (y - midline_point[1]) ** 2))
     return error
+
+
+def find_total_error(joints, midline):
+    # for each joint starting from the tip to the end, find the cumalitve error
+    total_linear_error = 0
+    total_area_error = 0
+
+    print(f"len midline: {len(midline)}, len midline[0]: {len(midline[0])}, len midline[0][0]: {len(midline[0][0])}")
+
+    for frame in range(len(midline[0])):
+        frame_linear_error = 0
+        frame_area_error = 0
+        for joint in range(len(joints) - 1):
+            for m in range(joints[joint][2], joints[joint + 1][2]):
+                frame_linear_error += find_linear_error(joints[joint + 1], joints[joint], midline[m][frame])
+
+            frame_area_error += find_area_error(joints[joint][2], joints[joint + 1][2], frame, midline)
+
+        print(f"frame {frame} error - linear: {frame_linear_error}, area:{frame_area_error}")
+        total_linear_error += frame_linear_error
+        total_area_error += frame_area_error
+
+    print(
+        f"avg linear error: {total_linear_error / len(midline[0]):.3f}, "
+        f"avg area error: {total_area_error / len(midline[0]):.3f}")
+    print(
+        f"total linear error: {total_linear_error:.3f}, total area error: {total_area_error:.3f}, difference: "
+        f"{total_linear_error / total_area_error:.3f}")
+    return [total_linear_error, total_area_error]
