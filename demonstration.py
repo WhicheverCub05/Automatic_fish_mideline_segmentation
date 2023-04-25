@@ -107,7 +107,7 @@ def linear_demonstration_animated(i):
     for j in range(joint_beginning, end, 1):
         midline_point = data[j]
 
-        error = ce.find_linear_error(segment_end, segment_beginning, midline_point)
+        error = ce.find_linear_error(segment_beginning, segment_end, midline_point)
 
         c_intersection = midline_point[1] - ((-1 / gr) * midline_point[0])
         x_intersection = abs((c - c_intersection) / (gr - (-1 / gr)))

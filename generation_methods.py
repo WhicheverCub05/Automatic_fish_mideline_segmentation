@@ -62,7 +62,7 @@ def grow_segments(midline, error_threshold):
             segment_end[1] = midline[increments][f][1]
             # get maximum error between joint and increments
             for i in range(joints[len(joints) - 1][2], increments, 1):
-                tmp_error = ce.find_linear_error(segment_end, segment_beginning, midline[i][f])
+                tmp_error = ce.find_linear_error(segment_beginning, segment_end, midline[i][f])
 
                 if frame_error < tmp_error:
                     frame_error = tmp_error
@@ -129,7 +129,7 @@ def grow_segments_binary_search(midline, error_threshold):
             while not segment_built:
                 error = 0
                 for j in range(start + 1, end - 1, 1):
-                    tmp_error = ce.find_linear_error(segment_end, segment_beginning, midline[j][f])
+                    tmp_error = ce.find_linear_error(segment_beginning, segment_end, midline[j][f])
                     if tmp_error > error:
                         error = tmp_error
                     if error >= error_threshold:
@@ -211,7 +211,7 @@ def grow_segments_binary_search_midpoint_only(midline, error_threshold):
 
             while not segment_built:
                 error_index = (segment_end[2] + joints[len(joints) - 1][2]) // 2
-                error = ce.find_linear_error(segment_end, segment_beginning, midline[error_index][f])
+                error = ce.find_linear_error(segment_beginning, segment_end, midline[error_index][f])
 
                 mid = (start + end) // 2
 
@@ -318,7 +318,7 @@ def grow_segments_from_inflection(midline, error_threshold):
                     frame_max_error = 0
 
                     for i in range(joints[len(joints) - 1][2], j):
-                        tmp_error = ce.find_linear_error(segment_end, segment_beginning, midline[i][f])
+                        tmp_error = ce.find_linear_error(segment_beginning, segment_end, midline[i][f])
 
                         if frame_max_error < tmp_error:
                             frame_max_error = tmp_error

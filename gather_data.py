@@ -20,7 +20,7 @@ def compare_method_sinewave_frequency(generation_method, frequency_min, frequenc
     csv_file_writer = csv.writer(csv_file)
     csv_file_writer.writerow(
         ['frequency', 'amplitude', 'resolution', 'phase_difference', 'frames', 'error_threshold', 'no. of joints',
-         'time', 'linear_error', 'area_error'])
+         'time', 'avg_linear_error', 'avg_area_error'])
 
     frequency = frequency_min
     amplitude = 2  # find avg max amplitude of a fish
@@ -41,13 +41,13 @@ def compare_method_sinewave_frequency(generation_method, frequency_min, frequenc
         start_time = time.perf_counter()
         joints = generation_method(error_threshold=error_threshold, midline=sinewave_set)
         time_taken = time.perf_counter() - start_time
-        total_error = ce.find_total_error(joints, sinewave_set)
+        avg_frame_error = ce.find_total_error(joints, sinewave_set)
         print(
             f"λ:{frequency}, A:{amplitude}, R:{resolution}, ϕ:{phase_difference}, fr:{frames}, er:{error_threshold}, #j:{len(joints)}, t:{time_taken}")
         csv_file_writer.writerow(
             [frequency, amplitude, resolution, phase_difference, frames, error_threshold, len(joints), time_taken,
-             total_error[0], total_error[1]])
-        # write time taken, number of joints, error, total_error to csv file
+             avg_frame_error[0], avg_frame_error[1]])
+        # write time taken, number of joints, error, avg_frame_error to csv file
         # joints_to_length(joints)
         # plt.show()
         frequency += frequency_interval
@@ -60,7 +60,7 @@ def compare_method_sinewave_amplitude(generation_method, amplitude_min, amplitud
     csv_file_writer = csv.writer(csv_file)
     csv_file_writer.writerow(
         ['frequency', 'amplitude', 'resolution', 'phase_difference', 'frames', 'error_threshold', 'no. of joints',
-         'time', 'linear_error', 'area_error'])
+         'time', 'avg_linear_error', 'avg_area_error'])
 
     frequency = 5  # avg frequency of fish from data
     amplitude = amplitude_min
@@ -78,10 +78,10 @@ def compare_method_sinewave_amplitude(generation_method, amplitude_min, amplitud
         start_time = time.perf_counter()
         joints = generation_method(error_threshold=error_threshold, midline=sinewave_set)
         time_taken = time.perf_counter() - start_time
-        total_error = ce.find_total_error(joints, sinewave_set)
+        avg_frame_error = ce.find_total_error(joints, sinewave_set)
         csv_file_writer.writerow(
             [frequency, amplitude, resolution, phase_difference, frames, error_threshold, len(joints), time_taken,
-             total_error[0], total_error[1]])
+             avg_frame_error[0], avg_frame_error[1]])
         print(
             f"λ:{frequency}, A:{amplitude}, R:{resolution}, ϕ:{phase_difference}, fr:{frames}, er:{error_threshold}, #j:{len(joints)}, t:{time_taken}")
         amplitude += amplitude_interval
@@ -95,7 +95,7 @@ def compare_method_sinewave_resolution(generation_method, resolution_min, resolu
     csv_file_writer = csv.writer(csv_file)
     csv_file_writer.writerow(
         ['frequency', 'amplitude', 'resolution', 'phase_difference', 'frames', 'error_threshold', 'no. of joints',
-         'time', 'linear_error', 'area_error'])
+         'time', 'avg_linear_error', 'avg_area_error'])
 
     frequency = 5  # avg frequency of fish from data
     amplitude = 2  # find avg max amplitude of a fish
@@ -114,10 +114,10 @@ def compare_method_sinewave_resolution(generation_method, resolution_min, resolu
         start_time = time.perf_counter()
         joints = generation_method(error_threshold=error_threshold, midline=sinewave_set)
         time_taken = time.perf_counter() - start_time
-        total_error = ce.find_total_error(joints, sinewave_set)
+        avg_frame_error = ce.find_total_error(joints, sinewave_set)
         csv_file_writer.writerow(
             [frequency, amplitude, resolution, phase_difference, frames, error_threshold, len(joints), time_taken,
-             total_error[0], total_error[1]])
+             avg_frame_error[0], avg_frame_error[1]])
         print(
             f"λ:{frequency}, A:{amplitude}, R:{resolution}, ϕ:{phase_difference}, fr:{frames}, er:{error_threshold}, #j:{len(joints)}, t:{time_taken}")
 
