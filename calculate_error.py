@@ -1,6 +1,6 @@
 # file contains methods calculating error
 import numpy as np
-
+import copy
 
 # finds the area between a joint and midline
 def find_area_error(start_index, end_index, frame, midline):
@@ -41,8 +41,7 @@ def find_area_error(start_index, end_index, frame, midline):
 def find_area_error_v2(segment_beginning, segment_end, frame, midline):
     lowest_point = 0
     area_under_midline = 0
-    area_under_segment = 0
-    error = 0
+    area_under_joint = 0
 
     # find lowest point on the y axis and shift frame so all y values above 0
     for i in range(len(midline)):
@@ -51,9 +50,9 @@ def find_area_error_v2(segment_beginning, segment_end, frame, midline):
 
     lowest_point = abs(lowest_point)
 
-    for i in range(segment_beginning, segment_end + 1):
-        mp_s = midline[i][frame]
-        mp_e = midline[i + 1][frame]
+    for i in range(segment_beginning, segment_end):
+        mp_s = copy.deepcopy(midline[i][frame])
+        mp_e = copy.deepcopy(midline[i + 1][frame])
         x_diff = abs(mp_e[0] - mp_s[0])
 
         mp_s[1] += lowest_point
@@ -67,10 +66,12 @@ def find_area_error_v2(segment_beginning, segment_end, frame, midline):
         area_minor = (abs(mp_s[0] - mp_e[0]) * abs(mp_s[1] - mp_e[1])) / 2
         area_under_midline += (area_major + area_minor)
 
-    # find area of line
+    # find area under line
+    joint_s = copy.deepcopy(midline[segment_beginning][frame])
+    joint_e = copy.deepcopy(midline[segment_end][frame])
 
-    joint_s = midline[segment_beginning][frame]
-    joint_e = midline[segment_end][frame]
+    joint_s[1] += lowest_point
+    joint_e[1] += lowest_point
 
     joint_x_diff = abs(joint_s[0] - joint_e[0])
 
@@ -112,16 +113,19 @@ def find_total_error(joints, midline):
     total_linear_error = 0
     total_area_error = 0
 
+    # add joint to end to accurately assess all error
+    joints.append([0, 0, (len(midline) - 1)])
+
     print(f"len midline: {len(midline)}, len midline[0]: {len(midline[0])}, len midline[0][0]: {len(midline[0][0])}")
 
     for frame in range(len(midline[0])):
         frame_linear_error = 0
         frame_area_error = 0
-        for joint in range(len(joints)):
+        for joint in range(len(joints) - 1):
             for m in range(joints[joint][2], joints[joint + 1][2]):
                 frame_linear_error += find_linear_error(joints[joint], joints[joint + 1], midline[m][frame])
 
-            frame_area_error += find_area_error(joints[joint][2], joints[joint + 1][2], frame, midline)
+            frame_area_error += find_area_error_v2(joints[joint][2], joints[joint + 1][2], frame, midline)
 
         print(f"frame {frame} error - linear: {frame_linear_error}, area:{frame_area_error}")
         total_linear_error += frame_linear_error
@@ -135,4 +139,7 @@ def find_total_error(joints, midline):
     print(
         f"total linear error: {total_linear_error:.3f}, total area error: {total_area_error:.3f}, difference: "
         f"{total_linear_error / total_area_error:.3f}")
+
+    joints.pop()
+
     return [avg_linear_frame_error, avg_area_frame_error]

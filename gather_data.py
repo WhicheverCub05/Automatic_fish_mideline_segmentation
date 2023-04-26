@@ -224,25 +224,39 @@ def sinewave_sandbox(save_path, *generation_method):
                   filename)
 
 
+def compare_visual_sinewaves():
+    cycles = 1
+    amplitude = 2
+    frames = 10
+    resolution = 200
+    phase_difference = (np.pi*2 / frames)
+    error_threshold = 0.5
+    growth_method = gm.grow_segments
+
+    for i in range(1, 7):
+        test_midline = mn.generate_midline_from_sinewave(i, amplitude, phase_difference, frames, resolution)
+        test_joints = gm.grow_segments(test_midline, error_threshold)
+        print(test_joints)
+        total_error = ce.find_total_error(test_joints, test_midline)
+        mn.plot_midline(test_midline, 0)
+        mn.joints_to_length(test_joints, 1)
+        plt.title(f"{growth_method.__name__}(e:{error_threshold}, A:{amplitude}, λ:{i}, ϕ:{phase_difference:.2f}, "
+                  f"frames:{frames}, res:{resolution})")
+        plt.annotate(f"avg frame error \nlinear:{total_error[0]:.2f} \narea:{total_error[1]:.2f}", (0, amplitude * -1))
+        plt.show()
+        plt.cla()
+
+
 if __name__ == "gather_data":
-    save_dir = mn.set_data_folder()
+    # save_dir = mn.set_data_folder()
     print("----- compare frequency -----")
-    compare_method_sinewave_frequency(gm.grow_segments_binary_search, 0.1, 20, 0.1, save_dir)
+    # compare_method_sinewave_frequency(gm.grow_segments_binary_search, 0.1, 20, 0.1, save_dir)
 
     print("----- compare amplitude -----")
-    compare_method_sinewave_amplitude(gm.grow_segments_binary_search, 0.1, 20, 0.1, save_dir)
+    # compare_method_sinewave_amplitude(gm.grow_segments_binary_search, 0.1, 20, 0.1, save_dir)
 
     print("----- compare resolution -----")
-    compare_method_sinewave_resolution(gm.grow_segments_binary_search, 26, 2000, 10, save_dir) # min - bs: 26, mp: 25
+    # compare_method_sinewave_resolution(gm.grow_segments_binary_search, 26, 2000, 10, save_dir) # min - bs: 26, mp: 25
 
-    """test_midline = mn.generate_midline_from_sinewave(1, 2, (np.pi * 2 / 10), 10, 200)
-    test_joints = gm.grow_segments(test_midline, 1)
-    ce.find_total_error(test_joints, test_midline)
+    compare_visual_sinewaves()
 
-    test_midline = mn.generate_midline_from_sinewave(2, 2, (np.pi * 2 / 10), 10, 200)
-    test_joints = gm.grow_segments(test_midline, 1)
-    ce.find_total_error(test_joints, test_midline)
-
-    test_midline = mn.generate_midline_from_sinewave(3, 2, (np.pi * 2 / 10), 10, 200)
-    test_joints = gm.grow_segments(test_midline, 1)
-    ce.find_total_error(test_joints, test_midline)"""

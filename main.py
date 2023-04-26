@@ -48,7 +48,7 @@ def generate_midline_from_sinewave(frequency, amplitude, phase_difference, frame
             midline[r][f][1] = np.sin((((x_values * frequency) / 100) * 2 * np.pi) + phase)[r] * amplitude
         phase += phase_difference
 
-    plot_midline(midline)
+    # plot_midline(midline)
     return midline
 
 
@@ -95,45 +95,62 @@ def get_user_save_path(data_path, *save_path):
 
 
 # each frame of the midline
-def plot_midline(midline, *columns):
-    if columns:
-        for c in columns:
+def plot_midline(midline, *frames):
+    if frames:
+        for f in frames:
             x = []
             y = []
             for s in range(len(midline)):
-                x.append(midline[s][c][0])
-                y.append(midline[s][c][1])
+                x.append(midline[s][f][0])
+                y.append(midline[s][f][1])
             plt.plot(x, y)
 
     else:
-        for c in range(len(midline[0])):
+        for f in range(len(midline[0])):
             x = []
             y = []
             for s in range(len(midline)):
-                x.append(midline[s][c][0])
-                y.append(midline[s][c][1])
+                x.append(midline[s][f][0])
+                y.append(midline[s][f][1])
             plt.plot(x, y)
 
-    plt.xlabel("x")
-    plt.ylabel("y")
+    plt.xlabel("x / cm")
+    plt.ylabel("y / cm")
 
 
 # turn joint data to actual lengths
-def joints_to_length(joints):
+def joints_to_length(joints, *plot_on_first_frame):
     segments = [0]
     length = 0
     plt.scatter(length, 0, color='red', label="start of head")
-    # plt.xlim(-10, 150)
-    # plt.ylim(-15, 15)
+
+    tmp_joints_x = []
+    tmp_joints_y = []
+    for j in range(len(joints)):
+        tmp_joints_x.append(joints[j][0])
+        tmp_joints_y.append(joints[j][1])
+
+    tmp_joints_x.append(100)
+    tmp_joints_y.append(0)
+
+    plt.plot(tmp_joints_x, tmp_joints_y)
+
     for i in range(len(joints) - 1):
         start = joints[i]
         end = joints[i + 1]
         length += math.sqrt((start[0] - end[0]) ** 2 + (start[1] - end[1]) ** 2)  # length = √((x2 – x1)² + (y2 – y1)²)
         length_difference = length - segments[i]
         segments.append(length)
-        plt.scatter(length, 0, color='black', label=f'{joints[i + 1][2]} ({length_difference:.2f}cm)')
+        plt.scatter(joints[i + 1][0], 0, color='gray')
+        if plot_on_first_frame:
+            if plot_on_first_frame[0]:
+                plt.scatter(joints[i + 1][0], joints[i + 1][1], color='black',
+                            label=f'{joints[i + 1][2]} ({length_difference:.2f}cm)')
+        else:
+            plt.scatter(joints[i + 1][0], 0, color='black', label=f'{joints[i + 1][2]} ({length_difference:.2f}cm)')
         # plt.annotate('(%d)' % joints[i + 1][2], (length, i % 2))
-        plt.legend(loc="upper right")
+        plt.annotate('%d' % joints[i + 1][2], (joints[i + 1][0] + 0.1, joints[i + 1][1] + 0.05))
+        # plt.legend(loc="best")
     return segments
 
 
@@ -321,5 +338,3 @@ def set_data_folder():
 if __name__ == "__main__":
     directory = set_data_folder()
     pick_method_and_save_all(data_path=directory)
-
-
