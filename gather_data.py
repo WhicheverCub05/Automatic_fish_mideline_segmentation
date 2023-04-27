@@ -16,7 +16,7 @@ import csv
 def compare_method_sinewave_frequency(generation_method, frequency_min, frequency_max, frequency_interval, save_path):
     csv_file = open(
         save_path + "/" + f"frequency_range({frequency_min}, {frequency_max}, {frequency_interval}) " + generation_method.__name__ \
-        + "_" + "sinewaves" + '.csv', 'w')
+        + "_" + "sinewaves" + '.xls', 'w')
     csv_file_writer = csv.writer(csv_file)
     csv_file_writer.writerow(
         ['frequency', 'amplitude', 'resolution', 'phase_difference', 'frames', 'error_threshold', 'no. of joints',
@@ -43,20 +43,21 @@ def compare_method_sinewave_frequency(generation_method, frequency_min, frequenc
         time_taken = time.perf_counter() - start_time
         avg_frame_error = ce.find_total_error(joints, sinewave_set)
         print(
-            f"λ:{frequency}, A:{amplitude}, R:{resolution}, ϕ:{phase_difference}, fr:{frames}, er:{error_threshold}, #j:{len(joints)}, t:{time_taken}")
+            f"λ:{frequency}, A:{amplitude}, R:{resolution}, ϕ:{phase_difference:.3f}, fr:{frames}, er:{error_threshold}, #j:{len(joints)}, t:{time_taken}")
         csv_file_writer.writerow(
-            [frequency, amplitude, resolution, phase_difference, frames, error_threshold, len(joints), time_taken,
+            [frequency, amplitude, resolution, round(phase_difference, 3), frames, error_threshold, len(joints), time_taken,
              avg_frame_error[0], avg_frame_error[1]])
         # write time taken, number of joints, error, avg_frame_error to csv file
         # joints_to_length(joints)
         # plt.show()
         frequency += frequency_interval
+        frequency = round(frequency, 1)
 
 
 def compare_method_sinewave_amplitude(generation_method, amplitude_min, amplitude_max, amplitude_interval, save_path):
     csv_file = open(
         save_path + "/" + f"amplitude_range({amplitude_min}, {amplitude_max}, {amplitude_interval}) " + generation_method.__name__ \
-        + "_" + "sinewaves" + '.csv', 'w')
+        + "_" + "sinewaves" + '.xls', 'w')
     csv_file_writer = csv.writer(csv_file)
     csv_file_writer.writerow(
         ['frequency', 'amplitude', 'resolution', 'phase_difference', 'frames', 'error_threshold', 'no. of joints',
@@ -80,18 +81,20 @@ def compare_method_sinewave_amplitude(generation_method, amplitude_min, amplitud
         time_taken = time.perf_counter() - start_time
         avg_frame_error = ce.find_total_error(joints, sinewave_set)
         csv_file_writer.writerow(
-            [frequency, amplitude, resolution, phase_difference, frames, error_threshold, len(joints), time_taken,
+            [frequency, amplitude, resolution, round(phase_difference, 3), frames, error_threshold, len(joints), time_taken,
              avg_frame_error[0], avg_frame_error[1]])
         print(
-            f"λ:{frequency}, A:{amplitude}, R:{resolution}, ϕ:{phase_difference}, fr:{frames}, er:{error_threshold}, #j:{len(joints)}, t:{time_taken}")
+            f"λ:{frequency}, A:{amplitude}, R:{resolution}, ϕ:{phase_difference:.3f}, fr:{frames}, er:{error_threshold}, #j:{len(joints)}, t:{time_taken}")
+
         amplitude += amplitude_interval
+        amplitude = round(amplitude, 1)
 
 
 def compare_method_sinewave_resolution(generation_method, resolution_min, resolution_max, resolution_interval,
                                        save_path):
     csv_file = open(
         save_path + "/" + f"resolution_range({resolution_min}, {resolution_max}, {resolution_interval}) " + generation_method.__name__ \
-        + "_" + "sinewaves" + '.csv', 'w')
+        + "_" + "sinewaves" + '.xls', 'w')
     csv_file_writer = csv.writer(csv_file)
     csv_file_writer.writerow(
         ['frequency', 'amplitude', 'resolution', 'phase_difference', 'frames', 'error_threshold', 'no. of joints',
@@ -119,7 +122,7 @@ def compare_method_sinewave_resolution(generation_method, resolution_min, resolu
             [frequency, amplitude, resolution, phase_difference, frames, error_threshold, len(joints), time_taken,
              avg_frame_error[0], avg_frame_error[1]])
         print(
-            f"λ:{frequency}, A:{amplitude}, R:{resolution}, ϕ:{phase_difference}, fr:{frames}, er:{error_threshold}, #j:{len(joints)}, t:{time_taken}")
+            f"λ:{frequency}, A:{amplitude}, R:{resolution}, ϕ:{phase_difference:.3f}, fr:{frames}, er:{error_threshold}, #j:{len(joints)}, t:{time_taken}")
 
         resolution += resolution_interval
 
@@ -240,23 +243,57 @@ def compare_visual_sinewaves():
         total_error = ce.find_total_error(test_joints, test_midline)
         mn.plot_midline(test_midline, 0)
         mn.joints_to_length(test_joints, 1)
-        plt.title(f"{growth_method.__name__}(e:{error_threshold}, A:{amplitude}, λ:{i}, ϕ:{phase_difference:.2f}, "
+        plt.title(f"{growth_method.__name__}(e:{error_threshold}, A:{amplitude}, λ:{i}, ϕ:{phase_difference:.3f}, "
                   f"frames:{frames}, res:{resolution})")
         plt.annotate(f"avg frame error \nlinear:{total_error[0]:.2f} \narea:{total_error[1]:.2f}", (0, amplitude * -1))
         plt.show()
         plt.cla()
 
 
-if __name__ == "gather_data":
-    # save_dir = mn.set_data_folder()
+def gather_some_data(save_dir):
     print("----- compare frequency -----")
-    # compare_method_sinewave_frequency(gm.grow_segments_binary_search, 0.1, 20, 0.1, save_dir)
+    compare_method_sinewave_frequency(gm.grow_segments, 0.1, 20, 0.1, save_dir)
 
     print("----- compare amplitude -----")
-    # compare_method_sinewave_amplitude(gm.grow_segments_binary_search, 0.1, 20, 0.1, save_dir)
+    compare_method_sinewave_amplitude(gm.grow_segments, 0.1, 20, 0.1, save_dir)
 
     print("----- compare resolution -----")
-    # compare_method_sinewave_resolution(gm.grow_segments_binary_search, 26, 2000, 10, save_dir) # min - bs: 26, mp: 25
+    compare_method_sinewave_resolution(gm.grow_segments, 20, 2000, 10, save_dir) # min - bs: 26, mp: 25
 
-    compare_visual_sinewaves()
+    # -------------------------------
+
+    print("----- compare frequency -----")
+    compare_method_sinewave_frequency(gm.grow_segments_binary_search, 0.1, 20, 0.1, save_dir)
+
+    print("----- compare amplitude -----")
+    compare_method_sinewave_amplitude(gm.grow_segments_binary_search, 0.1, 20, 0.1, save_dir)
+
+    print("----- compare resolution -----")
+    compare_method_sinewave_resolution(gm.grow_segments_binary_search, 26, 2000, 10, save_dir)  # min - bs: 26, mp: 25
+
+    # -------------------------------
+
+    print("----- compare frequency -----")
+    compare_method_sinewave_frequency(gm.grow_segments_binary_search_midpoint_only, 0.1, 20, 0.1, save_dir)
+
+    print("----- compare amplitude -----")
+    compare_method_sinewave_amplitude(gm.grow_segments_binary_search_midpoint_only, 0.1, 20, 0.1, save_dir)
+
+    print("----- compare resolution -----")
+    compare_method_sinewave_resolution(gm.grow_segments_binary_search_midpoint_only, 25, 2000, 10, save_dir)  # min - bs: 26, mp: 25
+
+    # -------------------------------
+
+    print("----- compare frequency -----")
+    compare_method_sinewave_frequency(gm.grow_segments_from_inflection, 0.1, 20, 0.1, save_dir)
+
+    print("----- compare amplitude -----")
+    compare_method_sinewave_amplitude(gm.grow_segments_from_inflection, 0.1, 20, 0.1, save_dir)
+
+    print("----- compare resolution -----")
+    compare_method_sinewave_resolution(gm.grow_segments_from_inflection, 20, 2000, 10, save_dir)  # min - bs: 26, mp: 25
+
+    # -------------------------------
+
+    # compare_visual_sinewaves()
 

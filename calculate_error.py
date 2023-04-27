@@ -116,7 +116,7 @@ def find_total_error(joints, midline):
     # add joint to end to accurately assess all error
     joints.append([0, 0, (len(midline) - 1)])
 
-    print(f"len midline: {len(midline)}, len midline[0]: {len(midline[0])}, len midline[0][0]: {len(midline[0][0])}")
+    # print(f"len midline: {len(midline)}, len midline[0]: {len(midline[0])}, len midline[0][0]: {len(midline[0][0])}")
 
     for frame in range(len(midline[0])):
         frame_linear_error = 0
@@ -127,18 +127,18 @@ def find_total_error(joints, midline):
 
             frame_area_error += find_area_error_v2(joints[joint][2], joints[joint + 1][2], frame, midline)
 
-        print(f"frame {frame} error - linear: {frame_linear_error}, area:{frame_area_error}")
+        # print(f"frame {frame} error - linear: {frame_linear_error}, area:{frame_area_error}")
         total_linear_error += frame_linear_error
         total_area_error += frame_area_error
 
     avg_linear_frame_error = total_linear_error / len(midline[0])
     avg_area_frame_error = total_area_error / len(midline[0])
-    print(
-        f"avg linear error: {avg_linear_frame_error:.3f}, "
-        f"avg area error: {avg_area_frame_error:.3f}")
-    print(
-        f"total linear error: {total_linear_error:.3f}, total area error: {total_area_error:.3f}, difference: "
-        f"{total_linear_error / total_area_error:.3f}")
+    # print(
+    #    f"avg linear error: {avg_linear_frame_error:.3f}, "
+    #    f"avg area error: {avg_area_frame_error:.3f}")
+    # print(
+    #    f"total linear error: {total_linear_error:.3f}, total area error: {total_area_error:.3f}, difference: "
+    #    f"{total_linear_error / total_area_error:.3f}")
 
     joints.pop()
 

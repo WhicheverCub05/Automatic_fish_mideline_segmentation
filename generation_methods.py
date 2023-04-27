@@ -170,8 +170,7 @@ def grow_segments_binary_search(midline, error_threshold):
             # print("avg_end_error:", avg_end_error / len(midline[0]), " avg_joint:", avg_joint)
             completed = True
 
-    joints.pop()
-
+    # joints.pop()
     return joints
 
 

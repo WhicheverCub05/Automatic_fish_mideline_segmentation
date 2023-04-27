@@ -336,5 +336,7 @@ def set_data_folder():
 
 # run code only when called as a script
 if __name__ == "__main__":
-    directory = set_data_folder()
-    pick_method_and_save_all(data_path=directory)
+    save_dir = set_data_folder() + "/results"
+    gd.gather_some_data(save_dir)
+    # directory = set_data_folder()
+    # pick_method_and_save_all(data_path=directory)
