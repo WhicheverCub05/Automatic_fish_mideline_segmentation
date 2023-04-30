@@ -1,5 +1,6 @@
 # importing local project libraries
-import generation_methods as gm
+import generation_methods_linear_error as gm_l
+import generation_methods_area_error as gm_a
 import calculate_error as ce
 import main as mn
 
@@ -13,21 +14,22 @@ import os
 import csv
 
 
-def compare_method_sinewave_frequency(generation_method, frequency_min, frequency_max, frequency_interval, save_path):
+def compare_method_sinewave_frequency(generation_method, error_threshold, frequency_min, frequency_max, frequency_interval, save_path):
     csv_file = open(
         save_path + "/" + f"frequency_range({frequency_min}, {frequency_max}, {frequency_interval}) " + generation_method.__name__ \
-        + "_" + "sinewaves" + '.xls', 'w')
+        + "_" + "sinewaves" + '.csv', 'w')
     csv_file_writer = csv.writer(csv_file)
     csv_file_writer.writerow(
         ['frequency', 'amplitude', 'resolution', 'phase_difference', 'frames', 'error_threshold', 'no. of joints',
          'time', 'avg_linear_error', 'avg_area_error'])
 
     frequency = frequency_min
-    amplitude = 2  # find avg max amplitude of a fish
+    amplitude = 22  # find avg max amplitude of a fish
+    length = 110
     resolution = 200  # default resolution for a midline
     frames = 10
     phase_difference = 2 * np.pi / frames
-    error_threshold = 1
+
     iterations = int((frequency_max - frequency_min) / frequency_interval)
     joints = []
     print(f"iterations size:{iterations}, interval:{frequency_interval}")
@@ -35,7 +37,7 @@ def compare_method_sinewave_frequency(generation_method, frequency_min, frequenc
     # for a fixed amplitude and length (length = 100cm)
     # compare for each interval
     for f in range(iterations):
-        sinewave_set = mn.generate_midline_from_sinewave(amplitude=amplitude, frequency=frequency,
+        sinewave_set = mn.generate_midline_from_sinewave(amplitude=amplitude, frequency=frequency, length_cm=length,
                                                          phase_difference=phase_difference, frames=frames,
                                                          resolution=resolution)
         start_time = time.perf_counter()
@@ -54,26 +56,26 @@ def compare_method_sinewave_frequency(generation_method, frequency_min, frequenc
         frequency = round(frequency, 1)
 
 
-def compare_method_sinewave_amplitude(generation_method, amplitude_min, amplitude_max, amplitude_interval, save_path):
+def compare_method_sinewave_amplitude(generation_method, error_threshold, amplitude_min, amplitude_max, amplitude_interval, save_path):
     csv_file = open(
         save_path + "/" + f"amplitude_range({amplitude_min}, {amplitude_max}, {amplitude_interval}) " + generation_method.__name__ \
-        + "_" + "sinewaves" + '.xls', 'w')
+        + "_" + "sinewaves" + '.csv', 'w')
     csv_file_writer = csv.writer(csv_file)
     csv_file_writer.writerow(
         ['frequency', 'amplitude', 'resolution', 'phase_difference', 'frames', 'error_threshold', 'no. of joints',
          'time', 'avg_linear_error', 'avg_area_error'])
 
-    frequency = 5  # avg frequency of fish from data
+    frequency = 1.7  # avg frequency of fish from data
     amplitude = amplitude_min
+    length = 110
     resolution = 200  # default resolution for a midline
     frames = 10
     phase_difference = 2 * np.pi / frames
-    error_threshold = 1
     iterations = int((amplitude_max - amplitude_min) / amplitude_interval)
     # create csv file
     # fixed frequency and number of waves
     for a in range(iterations):
-        sinewave_set = mn.generate_midline_from_sinewave(amplitude=amplitude, frequency=frequency,
+        sinewave_set = mn.generate_midline_from_sinewave(amplitude=amplitude, frequency=frequency, length_cm=length,
                                                          phase_difference=phase_difference, frames=frames,
                                                          resolution=resolution)
         start_time = time.perf_counter()
@@ -90,28 +92,28 @@ def compare_method_sinewave_amplitude(generation_method, amplitude_min, amplitud
         amplitude = round(amplitude, 1)
 
 
-def compare_method_sinewave_resolution(generation_method, resolution_min, resolution_max, resolution_interval,
+def compare_method_sinewave_resolution(generation_method, error_threshold, resolution_min, resolution_max, resolution_interval,
                                        save_path):
     csv_file = open(
         save_path + "/" + f"resolution_range({resolution_min}, {resolution_max}, {resolution_interval}) " + generation_method.__name__ \
-        + "_" + "sinewaves" + '.xls', 'w')
+        + "_" + "sinewaves" + '.csv', 'w')
     csv_file_writer = csv.writer(csv_file)
     csv_file_writer.writerow(
         ['frequency', 'amplitude', 'resolution', 'phase_difference', 'frames', 'error_threshold', 'no. of joints',
          'time', 'avg_linear_error', 'avg_area_error'])
 
-    frequency = 5  # avg frequency of fish from data
-    amplitude = 2  # find avg max amplitude of a fish
+    frequency = 1.7  # avg frequency of fish from data
+    length = 110
+    amplitude = 22  # find avg max amplitude of a fish
     resolution = resolution_min
     frames = 10
     phase_difference = 2 * np.pi / frames
-    error_threshold = 1
     iterations = int((resolution_max - resolution_min) / resolution_interval)
     # create csv file to write data
     # for a fixed amplitude and length (length = 100cm)
     # compare for each interval
     for r in range(iterations):
-        sinewave_set = mn.generate_midline_from_sinewave(amplitude=amplitude, frequency=frequency,
+        sinewave_set = mn.generate_midline_from_sinewave(amplitude=amplitude, frequency=frequency, length_cm=length,
                                                          phase_difference=phase_difference, frames=frames,
                                                          resolution=resolution)
         start_time = time.perf_counter()
@@ -183,13 +185,14 @@ def compare_method_error(generation_method, data_path, save_path):
 def sinewave_sandbox(save_path, *generation_method):
     amplitude = 5
     frequency = 2.5
+    length = 110
     phase = 10
     frames = 1
     res = 200
-    sin_midline = mn.generate_midline_from_sinewave(amplitude=amplitude, frequency=frequency,
+    sin_midline = mn.generate_midline_from_sinewave(amplitude=amplitude, frequency=frequency, length_cm=length,
                                                     phase_difference=phase, frames=frames, resolution=res)
     error = 0
-    method = gm.grow_segments
+    method = gm_l.grow_segments
 
     if generation_method:
         method = generation_method[0]
@@ -230,15 +233,16 @@ def sinewave_sandbox(save_path, *generation_method):
 def compare_visual_sinewaves():
     cycles = 1
     amplitude = 2
+    length = 110
     frames = 10
     resolution = 200
     phase_difference = (np.pi*2 / frames)
     error_threshold = 0.5
-    growth_method = gm.grow_segments
+    growth_method = gm_l.grow_segments
 
     for i in range(1, 7):
-        test_midline = mn.generate_midline_from_sinewave(i, amplitude, phase_difference, frames, resolution)
-        test_joints = gm.grow_segments(test_midline, error_threshold)
+        test_midline = mn.generate_midline_from_sinewave(i, amplitude, length, phase_difference, frames, resolution)
+        test_joints = gm_l.grow_segments(test_midline, error_threshold)
         print(test_joints)
         total_error = ce.find_total_error(test_joints, test_midline)
         mn.plot_midline(test_midline, 0)
@@ -250,50 +254,68 @@ def compare_visual_sinewaves():
         plt.cla()
 
 
-def gather_some_data(save_dir):
+def compare_all_methods_linear_error_sinewave(save_dir):
+
     print("----- compare frequency -----")
-    compare_method_sinewave_frequency(gm.grow_segments, 0.1, 20, 0.1, save_dir)
+    compare_method_sinewave_frequency(gm_l.grow_segments, 4, 0.1, 20, 0.1, save_dir)
 
     print("----- compare amplitude -----")
-    compare_method_sinewave_amplitude(gm.grow_segments, 0.1, 20, 0.1, save_dir)
+    compare_method_sinewave_amplitude(gm_l.grow_segments, 4, 0.5, 100, 0.5, save_dir)
 
     print("----- compare resolution -----")
-    compare_method_sinewave_resolution(gm.grow_segments, 20, 2000, 10, save_dir) # min - bs: 26, mp: 25
+    compare_method_sinewave_resolution(gm_l.grow_segments, 4, 20, 2000, 10, save_dir)  # min - bs: 26, mp: 25
 
     # -------------------------------
 
     print("----- compare frequency -----")
-    compare_method_sinewave_frequency(gm.grow_segments_binary_search, 0.1, 20, 0.1, save_dir)
+    compare_method_sinewave_frequency(gm_l.grow_segments_binary_search, 4, 0.1, 20, 0.1, save_dir)
 
     print("----- compare amplitude -----")
-    compare_method_sinewave_amplitude(gm.grow_segments_binary_search, 0.1, 20, 0.1, save_dir)
+    compare_method_sinewave_amplitude(gm_l.grow_segments_binary_search, 4, 0.5, 100, 0.5, save_dir)
 
     print("----- compare resolution -----")
-    compare_method_sinewave_resolution(gm.grow_segments_binary_search, 26, 2000, 10, save_dir)  # min - bs: 26, mp: 25
+    compare_method_sinewave_resolution(gm_l.grow_segments_binary_search, 4, 26, 2000, 10, save_dir)  # min - bs: 26, mp: 25
 
     # -------------------------------
 
     print("----- compare frequency -----")
-    compare_method_sinewave_frequency(gm.grow_segments_binary_search_midpoint_only, 0.1, 20, 0.1, save_dir)
+    compare_method_sinewave_frequency(gm_l.grow_segments_binary_search_midpoint_only, 4, 0.1, 20, 0.1, save_dir)
 
     print("----- compare amplitude -----")
-    compare_method_sinewave_amplitude(gm.grow_segments_binary_search_midpoint_only, 0.1, 20, 0.1, save_dir)
+    compare_method_sinewave_amplitude(gm_l.grow_segments_binary_search_midpoint_only, 4, 0.5, 100, 0.5, save_dir)
 
     print("----- compare resolution -----")
-    compare_method_sinewave_resolution(gm.grow_segments_binary_search_midpoint_only, 25, 2000, 10, save_dir)  # min - bs: 26, mp: 25
+    compare_method_sinewave_resolution(gm_l.grow_segments_binary_search_midpoint_only, 4, 25, 2000, 10,
+                                       save_dir)  # min - bs: 26, mp: 25
 
     # -------------------------------
 
     print("----- compare frequency -----")
-    compare_method_sinewave_frequency(gm.grow_segments_from_inflection, 0.1, 20, 0.1, save_dir)
+    compare_method_sinewave_frequency(gm_l.grow_segments_from_inflection, 4, 0.1, 20, 0.1, save_dir)
 
     print("----- compare amplitude -----")
-    compare_method_sinewave_amplitude(gm.grow_segments_from_inflection, 0.1, 20, 0.1, save_dir)
+    compare_method_sinewave_amplitude(gm_l.grow_segments_from_inflection, 4, 0.5, 100, 0.5, save_dir)
 
     print("----- compare resolution -----")
-    compare_method_sinewave_resolution(gm.grow_segments_from_inflection, 20, 2000, 10, save_dir)  # min - bs: 26, mp: 25
+    compare_method_sinewave_resolution(gm_l.grow_segments_from_inflection, 4, 20, 2000, 10, save_dir)  # min - bs: 26, mp: 25
 
-    # -------------------------------
 
-    # compare_visual_sinewaves()
+def compare_linear_and_area_error():
+
+    # create 1 csv file. compare how things change in respect to time and number of joints.
+    # compare fish data and see if number of joints is the same. also compare joint positions for a few sample fish.
+    # for a method, say generate_segments, compare variables from sinewaves like amplitude, frequency, resolution.
+    eel_midline = mn.generate_midline_from_sinewave(1.7, 22, 110, (np.pi*2/10), 10, 200)
+
+    eel_joints_area = gm_a.grow_segments_binary_search(eel_midline, 65)
+    eel_joints_linear = gm_l.grow_segments_binary_search(eel_midline, 4)  # (a:65 and l:4) ratio is 16.5
+
+    total_error_area = ce.find_total_error(eel_joints_area, eel_midline)
+    total_error_linear = ce.find_total_error(eel_joints_linear, eel_midline)
+
+    print(f"eel joints area ({len(eel_joints_area)}):{eel_joints_area}")
+    print("eel_joints_area total: ", total_error_area)
+
+    print(f"eel joints linear ({len(eel_joints_linear)}):{eel_joints_linear}")
+    print("eel_joints_linear total: ", total_error_linear)
 

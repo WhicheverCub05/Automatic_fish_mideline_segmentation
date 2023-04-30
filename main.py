@@ -1,5 +1,7 @@
 # importing local project libraries
-import generation_methods as gm
+import calculate_error
+import generation_methods_linear_error as gm_l
+import generation_methods_area_error as gm_a
 import gather_data as gd
 
 # import other libraries
@@ -36,16 +38,16 @@ def load_midline_data(location):
         print("the file is not found")
 
 
-def generate_midline_from_sinewave(frequency, amplitude, phase_difference, frames, resolution):
+def generate_midline_from_sinewave(frequency, amplitude, length_cm, phase_difference, frames, resolution):
     midline = [[[0 for _ in range(2)] for _ in range(frames)] for _ in range(resolution)]
-    x_values = np.linspace(0, 100, num=resolution)  # describes a 100cm sinewave
+    x_values = np.linspace(0, length_cm, num=resolution)  # describes a 100cm sinewave
 
     phase = 0
 
     for f in range(frames):
         for r in range(resolution):
             midline[r][f][0] = x_values[r]
-            midline[r][f][1] = np.sin((((x_values * frequency) / 100) * 2 * np.pi) + phase)[r] * amplitude
+            midline[r][f][1] = np.sin((((x_values * frequency) / length_cm) * 2 * np.pi) + phase)[r] * amplitude
         phase += phase_difference
 
     # plot_midline(midline)
@@ -248,15 +250,15 @@ def pick_method_and_save_all(data_path, *save_path):
                     break
 
             if user_selection == 'sg':
-                use_all_folder_data(gm.grow_segments, data_path, user_save_path, error_threshold=error_threshold)
+                use_all_folder_data(gm_l.grow_segments, data_path, user_save_path, error_threshold=error_threshold)
             elif user_selection == 'sg_i':
-                use_all_folder_data(gm.grow_segments_from_inflection, data_path, user_save_path,
+                use_all_folder_data(gm_l.grow_segments_from_inflection, data_path, user_save_path,
                                     error_threshold=error_threshold)
             elif user_selection == 'sg_bs':
-                use_all_folder_data(gm.grow_segments_binary_search, data_path, user_save_path,
+                use_all_folder_data(gm_l.grow_segments_binary_search, data_path, user_save_path,
                                     error_threshold=error_threshold)
             elif user_selection == 'sg_bs_mp':
-                use_all_folder_data(gm.grow_segments_binary_search_midpoint_only, data_path, user_save_path,
+                use_all_folder_data(gm_l.grow_segments_binary_search_midpoint_only, data_path, user_save_path,
                                     error_threshold=error_threshold)
 
         elif user_selection == 'es' or user_selection == 'ds':
@@ -271,24 +273,24 @@ def pick_method_and_save_all(data_path, *save_path):
                     break
 
             if user_selection == 'es':
-                use_all_folder_data(gm.create_equal_segments, data_path, user_save_path, segment_count=segment_count)
+                use_all_folder_data(gm_l.create_equal_segments, data_path, user_save_path, segment_count=segment_count)
             elif user_selection == 'ds':
-                use_all_folder_data(gm.create_diminishing_segments, data_path, user_save_path,
+                use_all_folder_data(gm_l.create_diminishing_segments, data_path, user_save_path,
                                     segment_count=segment_count)
 
         elif user_selection == 'ce':
             while 1:
                 user_method = input("generation method (q:quit): ")
                 if user_method == "sg":
-                    gd.compare_method_error(gm.grow_segments, data_path, user_save_path)
+                    gd.compare_method_error(gm_l.grow_segments, data_path, user_save_path)
                 elif user_method == "sg_bs":
-                    gd.compare_method_error(gm.grow_segments_binary_search, data_path, user_save_path)
+                    gd.compare_method_error(gm_l.grow_segments_binary_search, data_path, user_save_path)
                 elif user_method == "sg_bs_mp":
-                    gd.compare_method_error(gm.grow_segments_binary_search_midpoint_only, data_path, user_save_path)
+                    gd.compare_method_error(gm_l.grow_segments_binary_search_midpoint_only, data_path, user_save_path)
                 elif user_method == "es":
-                    gd.compare_method_error(gm.create_equal_segments, data_path, user_save_path)
+                    gd.compare_method_error(gm_l.create_equal_segments, data_path, user_save_path)
                 elif user_method == "ds":
-                    gd.compare_method_error(gm.create_diminishing_segments, data_path, user_save_path)
+                    gd.compare_method_error(gm_l.create_diminishing_segments, data_path, user_save_path)
                 elif user_method == 'q':
                     break
                 else:
@@ -336,7 +338,14 @@ def set_data_folder():
 
 # run code only when called as a script
 if __name__ == "__main__":
-    save_dir = set_data_folder() + "/results"
-    gd.gather_some_data(save_dir)
-    # directory = set_data_folder()
-    # pick_method_and_save_all(data_path=directory)
+    # eel_midline = generate_midline_from_sinewave(1.7, 22, 110, (np.pi*2/10), 10, 200)
+    # eel_joints = gm_l.grow_segments(eel_midline, 4)  # error: [1:12 joints (excluding head), 2:8, 3:7, 4:6]
+    # total_error = calculate_error.find_total_error(eel_joints, eel_midline)
+    # print("eel joints: ", eel_joints, " length: ", len(eel_joints), " error: ", total_error)
+    # save_dir = set_data_folder() + "/results"
+    # gd.compare_all_methods_linear_error_sinewave(save_dir)
+
+    directory = set_data_folder()
+    pick_method_and_save_all(data_path=directory)
+
+

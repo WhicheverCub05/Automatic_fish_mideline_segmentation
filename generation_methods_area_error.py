@@ -1,47 +1,10 @@
-# file contains methods of creating segments
+# file contains methods of creating segments using area
 import calculate_error as ce
-
-
-# implementation of equally divided segments
-def create_equal_segments(midline, segment_count, *frame):
-    joints = [[0 for _ in range(3)] for _ in range(0)]
-    column = 0
-
-    if frame:
-        column = frame
-
-    for i in range(segment_count):
-        increment = int((i / segment_count) * len(midline))
-        x = midline[increment][column][0]
-        y = midline[increment][column][1]
-        joints.append([x, y, increment])
-
-    return joints
-
-
-# create segments of diminishing size but add up to 1
-def create_diminishing_segments(midline, segment_count, *frame):
-    joints = [[0 for _ in range(3)] for _ in range(0)]
-    length = len(midline)
-    increment = 0
-    column = 0
-
-    if frame:
-        column = frame
-
-    for i in range(segment_count):
-        x = midline[increment][column][0]
-        y = midline[increment][column][1]
-        joints.append([x, y, increment])
-        increment += length // 2
-        length = length // 2
-        print("increment: ", increment)
-    return joints
 
 
 # growth method from Dr.Otar's paper. An increment is made and compared for max error for each frame.
 # If the avg error is below the threshold, add an increment and compare avg max error.
-def grow_segments(midline, error_threshold):
+def grow_segments(midline, error_threshold_area):
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
 
@@ -60,22 +23,19 @@ def grow_segments(midline, error_threshold):
 
             segment_end[0] = midline[increments][f][0]
             segment_end[1] = midline[increments][f][1]
-            # get maximum error between joint and increments
-            for i in range(joints[len(joints) - 1][2], increments, 1):
-                tmp_error = ce.find_linear_error(segment_beginning, segment_end, midline[i][f])
+            # get error between joint and increments
 
-                if frame_error < tmp_error:
-                    frame_error = tmp_error
+            frame_error = ce.find_area_error(joints[len(joints)-1][2], increments, f, midline)
 
             total_error += frame_error
 
         total_error /= len(midline[0])  # avg of error for that joint, for all frames.
 
-        if total_error < error_threshold:
+        if total_error < error_threshold_area:
             # print("ye: ", increments, " f: ", f, " error: ", total_error)
             increments += 1
 
-        elif total_error >= error_threshold:
+        elif total_error >= error_threshold_area:
             increments -= 1
 
             if increments <= joints[len(joints) - 1][2]:
@@ -95,7 +55,7 @@ def grow_segments(midline, error_threshold):
 
 # Grows the segments but uses a binary search technique.
 # Joints are compared from start to the end of the midline, and halved if max error is over threshold
-def grow_segments_binary_search(midline, error_threshold):
+def grow_segments_binary_search(midline, error_threshold_area):
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
 
@@ -127,13 +87,7 @@ def grow_segments_binary_search(midline, error_threshold):
             segment_built = False
 
             while not segment_built:
-                error = 0
-                for j in range(start + 1, end - 1, 1):
-                    tmp_error = ce.find_linear_error(segment_beginning, segment_end, midline[j][f])
-                    if tmp_error > error:
-                        error = tmp_error
-                    if error >= error_threshold:
-                        break
+                error = ce.find_area_error(joints[len(joints)-1][2], (len(midline) - 1), f, midline)
 
                 mid = (start + end) // 2
 
@@ -145,14 +99,14 @@ def grow_segments_binary_search(midline, error_threshold):
                 if end == len(midline) - 1:
                     avg_end_error += error
 
-                if error >= error_threshold:
+                if error >= error_threshold_area:
                     end = mid - 1
                     segment_end[2] = end  # was int(midline_range / 2 ** divisions)
                     segment_end[1] = midline[segment_end[2]][f][1]
                     segment_end[0] = midline[segment_end[2]][f][0]
                     divisions += 1
 
-                elif error < error_threshold:
+                elif error < error_threshold_area:
                     start = mid + 1
                     if start < len(midline):
                         segment_end[2] = start  # was int(midline_range / 2 ** divisions)
@@ -166,7 +120,7 @@ def grow_segments_binary_search(midline, error_threshold):
 
         # print("Adding joint:", joints[len(joints) - 1])
 
-        if (avg_end_error / len(midline[0])) < error_threshold:
+        if (avg_end_error / len(midline[0])) < error_threshold_area:
             # print("avg_end_error:", avg_end_error / len(midline[0]), " avg_joint:", avg_joint)
             completed = True
 
@@ -177,7 +131,7 @@ def grow_segments_binary_search(midline, error_threshold):
 # another option - for each joint, generate segments for 1 frame. try segment on other frames and reduce size as needed
 
 # optimises the generation method by using greedy binary search
-def grow_segments_binary_search_midpoint_only(midline, error_threshold):
+def grow_segments_binary_search_midpoint_only(midline, error_threshold_area):
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
 
@@ -210,7 +164,7 @@ def grow_segments_binary_search_midpoint_only(midline, error_threshold):
 
             while not segment_built:
                 error_index = (segment_end[2] + joints[len(joints) - 1][2]) // 2
-                error = ce.find_linear_error(segment_beginning, segment_end, midline[error_index][f])
+                error = ce.find_area_error(joints[len(joints) - 1][2], error_index, f, midline)
 
                 mid = (start + end) // 2
 
@@ -222,14 +176,14 @@ def grow_segments_binary_search_midpoint_only(midline, error_threshold):
                 if end == len(midline) - 1:
                     avg_end_error += error
 
-                if error >= error_threshold:
+                if error >= error_threshold_area:
                     end = mid - 1
                     segment_end[2] = end  # was int(midline_range / 2 ** divisions)
                     segment_end[1] = midline[segment_end[2]][f][1]
                     segment_end[0] = midline[segment_end[2]][f][0]
                     divisions += 1
 
-                elif error < error_threshold:
+                elif error < error_threshold_area:
                     start = mid + 1
                     if start < len(midline):
                         segment_end[2] = start  # was int(midline_range / 2 ** divisions)
@@ -243,11 +197,10 @@ def grow_segments_binary_search_midpoint_only(midline, error_threshold):
 
         # print("Adding joint:", joints[len(joints) - 1])
 
-        if (avg_end_error / len(midline[0])) < error_threshold:
+        if (avg_end_error / len(midline[0])) < error_threshold_area:
             # print("avg_end_error:", avg_end_error / len(midline[0]), " avg_joint:", avg_joint)
             completed = True
-
-    joints.pop()
+    # joints.pop()
 
     return joints
 
@@ -255,7 +208,7 @@ def grow_segments_binary_search_midpoint_only(midline, error_threshold):
 # finds a point with the highest gradient from current joint
 # and tries to add a joint if the avg error for all frames is less than threshold.
 # if the joint can't be added due to high error, try out previous midline points until the joint can be added
-def grow_segments_from_inflection(midline, error_threshold):
+def grow_segments_from_inflection(midline, error_threshold_area):
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])
 
@@ -314,19 +267,13 @@ def grow_segments_from_inflection(midline, error_threshold):
                     segment_beginning = midline[joints[(len(joints)-1)][2]][f]
                     segment_end = midline[j][f]
 
-                    frame_max_error = 0
-
-                    for i in range(joints[len(joints) - 1][2], j):
-                        tmp_error = ce.find_linear_error(segment_beginning, segment_end, midline[i][f])
-
-                        if frame_max_error < tmp_error:
-                            frame_max_error = tmp_error
+                    frame_max_error = ce.find_area_error(joints[len(joints)-1][2], j, f, midline)
 
                     total_error += frame_max_error
 
                 total_error /= len(midline[0])
 
-                if total_error < error_threshold:
+                if total_error < error_threshold_area:
                     joint_built = True
                     break
 
