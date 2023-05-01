@@ -87,7 +87,7 @@ def grow_segments_binary_search(midline, error_threshold_area):
             segment_built = False
 
             while not segment_built:
-                error = ce.find_area_error(joints[len(joints)-1][2], (len(midline) - 1), f, midline)
+                error = ce.find_area_error(joints[len(joints)-1][2], segment_end[2], f, midline)
 
                 mid = (start + end) // 2
 
@@ -101,7 +101,7 @@ def grow_segments_binary_search(midline, error_threshold_area):
 
                 if error >= error_threshold_area:
                     end = mid - 1
-                    segment_end[2] = end  # was int(midline_range / 2 ** divisions)
+                    segment_end[2] = end
                     segment_end[1] = midline[segment_end[2]][f][1]
                     segment_end[0] = midline[segment_end[2]][f][0]
                     divisions += 1

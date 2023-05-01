@@ -12,9 +12,11 @@ import time
 import glob
 import os
 import csv
+import inspect
 
 
-def compare_method_sinewave_frequency(generation_method, error_threshold, frequency_min, frequency_max, frequency_interval, save_path):
+def compare_method_sinewave_frequency(generation_method, error_threshold, frequency_min, frequency_max,
+                                      frequency_interval, save_path):
     csv_file = open(
         save_path + "/" + f"frequency_range({frequency_min}, {frequency_max}, {frequency_interval}) " + generation_method.__name__ \
         + "_" + "sinewaves" + '.csv', 'w')
@@ -47,7 +49,8 @@ def compare_method_sinewave_frequency(generation_method, error_threshold, freque
         print(
             f"λ:{frequency}, A:{amplitude}, R:{resolution}, ϕ:{phase_difference:.3f}, fr:{frames}, er:{error_threshold}, #j:{len(joints)}, t:{time_taken}")
         csv_file_writer.writerow(
-            [frequency, amplitude, resolution, round(phase_difference, 3), frames, error_threshold, len(joints), time_taken,
+            [frequency, amplitude, resolution, round(phase_difference, 3), frames, error_threshold, len(joints),
+             time_taken,
              avg_frame_error[0], avg_frame_error[1]])
         # write time taken, number of joints, error, avg_frame_error to csv file
         # joints_to_length(joints)
@@ -56,7 +59,8 @@ def compare_method_sinewave_frequency(generation_method, error_threshold, freque
         frequency = round(frequency, 1)
 
 
-def compare_method_sinewave_amplitude(generation_method, error_threshold, amplitude_min, amplitude_max, amplitude_interval, save_path):
+def compare_method_sinewave_amplitude(generation_method, error_threshold, amplitude_min, amplitude_max,
+                                      amplitude_interval, save_path):
     csv_file = open(
         save_path + "/" + f"amplitude_range({amplitude_min}, {amplitude_max}, {amplitude_interval}) " + generation_method.__name__ \
         + "_" + "sinewaves" + '.csv', 'w')
@@ -83,7 +87,8 @@ def compare_method_sinewave_amplitude(generation_method, error_threshold, amplit
         time_taken = time.perf_counter() - start_time
         avg_frame_error = ce.find_total_error(joints, sinewave_set)
         csv_file_writer.writerow(
-            [frequency, amplitude, resolution, round(phase_difference, 3), frames, error_threshold, len(joints), time_taken,
+            [frequency, amplitude, resolution, round(phase_difference, 3), frames, error_threshold, len(joints),
+             time_taken,
              avg_frame_error[0], avg_frame_error[1]])
         print(
             f"λ:{frequency}, A:{amplitude}, R:{resolution}, ϕ:{phase_difference:.3f}, fr:{frames}, er:{error_threshold}, #j:{len(joints)}, t:{time_taken}")
@@ -92,7 +97,8 @@ def compare_method_sinewave_amplitude(generation_method, error_threshold, amplit
         amplitude = round(amplitude, 1)
 
 
-def compare_method_sinewave_resolution(generation_method, error_threshold, resolution_min, resolution_max, resolution_interval,
+def compare_method_sinewave_resolution(generation_method, error_threshold, resolution_min, resolution_max,
+                                       resolution_interval,
                                        save_path):
     csv_file = open(
         save_path + "/" + f"resolution_range({resolution_min}, {resolution_max}, {resolution_interval}) " + generation_method.__name__ \
@@ -236,7 +242,7 @@ def compare_visual_sinewaves():
     length = 110
     frames = 10
     resolution = 200
-    phase_difference = (np.pi*2 / frames)
+    phase_difference = (np.pi * 2 / frames)
     error_threshold = 0.5
     growth_method = gm_l.grow_segments
 
@@ -255,7 +261,6 @@ def compare_visual_sinewaves():
 
 
 def compare_all_methods_linear_error_sinewave(save_dir):
-
     print("----- compare frequency -----")
     compare_method_sinewave_frequency(gm_l.grow_segments, 4, 0.1, 20, 0.1, save_dir)
 
@@ -274,7 +279,8 @@ def compare_all_methods_linear_error_sinewave(save_dir):
     compare_method_sinewave_amplitude(gm_l.grow_segments_binary_search, 4, 0.5, 100, 0.5, save_dir)
 
     print("----- compare resolution -----")
-    compare_method_sinewave_resolution(gm_l.grow_segments_binary_search, 4, 26, 2000, 10, save_dir)  # min - bs: 26, mp: 25
+    compare_method_sinewave_resolution(gm_l.grow_segments_binary_search, 4, 26, 2000, 10,
+                                       save_dir)  # min - bs: 26, mp: 25
 
     # -------------------------------
 
@@ -297,15 +303,71 @@ def compare_all_methods_linear_error_sinewave(save_dir):
     compare_method_sinewave_amplitude(gm_l.grow_segments_from_inflection, 4, 0.5, 100, 0.5, save_dir)
 
     print("----- compare resolution -----")
-    compare_method_sinewave_resolution(gm_l.grow_segments_from_inflection, 4, 20, 2000, 10, save_dir)  # min - bs: 26, mp: 25
+    compare_method_sinewave_resolution(gm_l.grow_segments_from_inflection, 4, 20, 2000, 10,
+                                       save_dir)  # min - bs: 26, mp: 25
 
 
-def compare_linear_and_area_error():
+def compare_linear_and_area_error(data_path, save_dir, *generation_methods):
+    all_midline_files = glob.glob(data_path + '/*.xls')
 
-    # create 1 csv file. compare how things change in respect to time and number of joints.
+    # write data to csv files
+
+    csv_file = open(save_dir + "compare_linear_and_area_error" + '.csv', 'w')
+    csv_file_writer = csv.writer(csv_file)
+
+    # compare joints and error for eel sine wave
+    eel_midline = mn.generate_midline_from_sinewave(1.7, 22, 110, (np.pi * 2 / 10), 10, 200)
+
+    error_threshold_area = 0
+    error_threshold_linear = 0
+    csv_data = []
+
+    column_labels = ['linear error threshold', 'area error threshold', '']
+    for g in range(len(generation_methods)):
+
+        column_labels.append(generation_methods[g].__name__ + " time")
+        column_labels.append(generation_methods[g].__name__ + " no. of joints")
+        column_labels.append(generation_methods[g].__name__ + " total area error")
+        column_labels.append('')
+
+    csv_file_writer.writerow(column_labels)
+
+    for e in range(100):
+
+        csv_data = []
+
+        error_threshold = 0
+        error_threshold_linear += 0.5
+        error_threshold_area += 10
+
+        csv_data.append(error_threshold_linear)
+        csv_data.append(error_threshold_area)
+
+        print(f"linear error threshold: {error_threshold_linear}, area error threshold: {error_threshold_area}")
+
+        for g in range(len(generation_methods)):
+
+            generation_method = generation_methods[g]
+
+            if 'error_threshold_area' in (str(inspect.signature(generation_method))):
+                error_threshold = error_threshold_area
+            else:
+                error_threshold = error_threshold_linear
+
+            time_start = time.perf_counter()
+            joints = generation_method(eel_midline, error_threshold)
+            total_time = time.perf_counter() - time_start
+            total_error = ce.find_total_error(joints, eel_midline)
+
+            csv_data.append('')
+            csv_data.append(total_time)
+            csv_data.append(len(joints))
+            csv_data.append(total_error[1])
+
+        csv_file_writer.writerow(csv_data)
+
     # compare fish data and see if number of joints is the same. also compare joint positions for a few sample fish.
     # for a method, say generate_segments, compare variables from sinewaves like amplitude, frequency, resolution.
-    eel_midline = mn.generate_midline_from_sinewave(1.7, 22, 110, (np.pi*2/10), 10, 200)
 
     eel_joints_area = gm_a.grow_segments_binary_search(eel_midline, 65)
     eel_joints_linear = gm_l.grow_segments_binary_search(eel_midline, 4)  # (a:65 and l:4) ratio is 16.5
@@ -318,4 +380,3 @@ def compare_linear_and_area_error():
 
     print(f"eel joints linear ({len(eel_joints_linear)}):{eel_joints_linear}")
     print("eel_joints_linear total: ", total_error_linear)
-
