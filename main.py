@@ -202,9 +202,6 @@ def joints_to_length(joints, *plot_on_first_frame):
         tmp_joints_x.append(joints[j][0])
         tmp_joints_y.append(joints[j][1])
 
-    tmp_joints_x.append(100)
-    tmp_joints_y.append(0)
-
     plt.plot(tmp_joints_x, tmp_joints_y)
 
     for i in range(len(joints) - 1):
@@ -222,7 +219,7 @@ def joints_to_length(joints, *plot_on_first_frame):
             plt.scatter(joints[i + 1][0], 0, color='black', label=f'{joints[i + 1][2]} ({length_difference:.2f}cm)')
         # plt.annotate('(%d)' % joints[i + 1][2], (length, i % 2))
         plt.annotate('%d' % joints[i + 1][2], (joints[i + 1][0] + 0.1, joints[i + 1][1] + 0.05))
-        # plt.legend(loc="best")
+        plt.legend(loc="best")
     return segments
 
 
@@ -349,3 +346,5 @@ if __name__ == "__main__":
     # pick_method_and_save_all(data_path=directory)
 
     gd.gather_data()
+
+

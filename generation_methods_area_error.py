@@ -1,5 +1,6 @@
 # file contains methods of creating segments using area
 import calculate_error as ce
+import copy
 
 
 def grow_segments(midline, error_threshold_area):
@@ -30,7 +31,7 @@ def grow_segments(midline, error_threshold_area):
             segment_end[1] = midline[increments][f][1]
             # get error between joint and increments
 
-            frame_error = ce.find_area_error(joints[len(joints)-1][2], increments, f, midline)
+            frame_error = ce.find_area_error(joints[len(joints) - 1][2], increments, f, midline)
 
             total_error += frame_error
 
@@ -97,7 +98,7 @@ def grow_segments_binary_search(midline, error_threshold_area):
             segment_built = False
 
             while not segment_built:
-                error = ce.find_area_error(joints[len(joints)-1][2], segment_end[2], f, midline)
+                error = ce.find_area_error(joints[len(joints) - 1][2], segment_end[2], f, midline)
 
                 mid = (start + end) // 2
 
@@ -255,7 +256,8 @@ def grow_segments_from_inflection(midline, error_threshold_area):
                 segment_end[1] = midline[inflection_point][f][1]
 
                 if abs(segment_end[0] - segment_beginning[0]) > 0:
-                    tmp_gradient = abs((segment_end[1] - segment_beginning[1])/(segment_end[0] - segment_beginning[0]))
+                    tmp_gradient = abs(
+                        (segment_end[1] - segment_beginning[1]) / (segment_end[0] - segment_beginning[0]))
                 else:
                     tmp_gradient = 0
                 # find max gradient which is an inflection
@@ -283,10 +285,10 @@ def grow_segments_from_inflection(midline, error_threshold_area):
             for j in reversed(range(joints[len(joints) - 1][2], avg_inflection_point + 1)):
                 # try a previous segment until the error works for all frames
                 for f in range(len(midline[0])):
-                    segment_beginning = midline[joints[(len(joints)-1)][2]][f]
+                    segment_beginning = midline[joints[(len(joints) - 1)][2]][f]
                     segment_end = midline[j][f]
 
-                    frame_max_error = ce.find_area_error(joints[len(joints)-1][2], j, f, midline)
+                    frame_max_error = ce.find_area_error(joints[len(joints) - 1][2], j, f, midline)
 
                     total_error += frame_max_error
 
@@ -301,5 +303,89 @@ def grow_segments_from_inflection(midline, error_threshold_area):
         else:
             joints.append([midline[inflection_point][0][0], midline[inflection_point][0][1], avg_inflection_point])
             # print("inflection_point to add joint:", avg_inflection_point)
+
+    return joints
+
+
+def generate_segments_to_max_area_error(midline, total_area_max):
+    """
+    Creates a joint configuration by starting with a joint for each midline point and greedily removing
+    the joint that would increase error by the smallest amount until the total error is over the threshold
+    :param midline: the midline of the fish
+    :param total_area_max: the maximum total error of the joint configuration
+    :return: array of where the joints should be along the midline
+    """
+    joints = [[0 for _ in range(3)] for _ in range(0)]
+
+    for j in range(len(midline)):
+        joints.append([midline[j][0][0], midline[j][0][1], j])
+
+    total_area_error = 0
+
+    print("error rn: ", ce.find_total_error(joints, midline)[1])
+
+    while total_area_error <= total_area_max:
+        lowest_joint_error = total_area_max
+        lowest_joint_error_index = 0
+        # has to start at joint that is not the start or else it'll start eating up the joints
+        for joint_index in range(1, len(joints)):
+            tmp_joints = copy.deepcopy(joints)
+            del tmp_joints[joint_index]
+            tmp_area_error = ce.find_total_area_error(tmp_joints, midline)
+
+            if lowest_joint_error > tmp_area_error:
+                lowest_joint_error = tmp_area_error
+                lowest_joint_error_index = joint_index
+
+        if lowest_joint_error_index != 0:
+            del joints[lowest_joint_error_index]
+        else:
+            break
+
+        total_area_error = ce.find_total_error(joints, midline)[1]
+
+        # print(f"removing:{lowest_joint_error_index}, total_error:{total_area_error}, len(joints):{len(joints)}")
+
+    return joints
+
+
+def generate_segments_to_quantity(midline, max_number_of_segments):
+    """
+    Creates a joint configuration by starting off with a joint for each midline point, and removing
+    the joints that would increase the error by the least amount until there are only a given amount of joints left
+    :param midline: the midline of the fish
+    :param max_number_of_segments: the maximum number of segments to build
+    :return: array of where the joints should be along the midline
+    """
+    joints = [[0 for _ in range(3)] for _ in range(0)]
+
+    for j in range(len(midline)):
+        joints.append([midline[j][0][0], midline[j][0][1], j])
+
+    total_area_error = 0
+
+    print("error rn: ", ce.find_total_error(joints, midline)[1])
+
+    while len(joints) > max_number_of_segments:
+        lowest_joint_error = 1000
+        lowest_joint_error_index = 0
+        # has to start at joint that is not the start or else it'll start eating up the joints
+        for joint_index in range(1, len(joints)):
+            tmp_joints = copy.deepcopy(joints)
+            del tmp_joints[joint_index]
+            tmp_area_error = ce.find_total_area_error(tmp_joints, midline)
+
+            if lowest_joint_error > tmp_area_error:
+                lowest_joint_error = tmp_area_error
+                lowest_joint_error_index = joint_index
+
+        if lowest_joint_error_index != 0:
+            del joints[lowest_joint_error_index]
+        else:
+            break
+
+        total_area_error = ce.find_total_error(joints, midline)[1]
+
+        # print(f"removing:{lowest_joint_error_index}, total_error:{total_area_error}, len(joints):{len(joints)}")
 
     return joints

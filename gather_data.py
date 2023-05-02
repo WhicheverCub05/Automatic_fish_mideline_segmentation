@@ -474,14 +474,52 @@ def use_all_folder_data(generation_method, data_path, save_path, **parameters):
         plt.cla()
 
 
+def compare_number_of_joints_fish_data(data_path, save_dir):
+    all_files = glob.glob(data_path + '/*.xls')
+    print("all_files: ", all_files)
+
+    csv_file = open(save_dir + "compare_number_of_joints_fish_data" + '.csv', 'w')
+    csv_file_writer = csv.writer(csv_file)
+
+    csv_file_writer.writerow(["Midline filename", "", "Number of joints", "Total_area_error", "Time taken"])
+
+    for f in range(len(all_files)-1):
+        fish_midline = mn.load_midline_data(all_files[f])
+        for j in range(4, 6):
+            start_time = time.perf_counter()
+            joints = gm_a.generate_segments_to_quantity(fish_midline, j)
+            total_time = time.perf_counter() - start_time
+
+            total_area_error = ce.find_total_area_error(joints, fish_midline)
+
+            csv_file_writer.writerow([all_files[f], "", len(joints), total_area_error, total_time])
+
+            print(f"file:{all_files[f]}, number of joints:{j}, total_area_error:{total_area_error:.2f}, "
+                  f"time taken:{total_time:.3f}")
+
+        csv_file_writer.writerow("")
+        csv_file_writer.writerow("")
+
+
+
 def gather_data():
     """
     This Method is where I arrange which methods to run. This Function is then called in main.py
     :return: None
     """
-    eel_midline = mn.generate_midline_from_sinewave(1.7, 22, 110, (np.pi * 2 / 10), 10, 200)
+    eel_midline = mn.generate_midline_from_sinewave(1.7, 22, 110, (np.pi * 2 / 10), 10, 50)
 
-    save_path = mn.set_data_folder() + "/results/"
+    # save_path = mn.set_data_folder() + "/results/"
 
-    compare_method_sinewave_resolution(gm_l.grow_segments, 4, 30, 2030, 10, save_path)
-    compare_method_sinewave_resolution(gm_a.grow_segments, 65, 30, 2040, 10, save_path)
+    # compare_method_sinewave_resolution(gm_l.grow_segments, 4, 30, 2030, 10, save_path)
+    # compare_method_sinewave_resolution(gm_a.grow_segments, 65, 30, 2040, 10, save_path)
+
+    # joints = gm_a.generate_segments_to_max_area_error(eel_midline, 200)
+    # joints = gm_a.generate_segments_to_quantity(eel_midline, 3)
+    # print("final joints: ", joints)
+    # mn.plot_midline(eel_midline, 0)
+    # mn.joints_to_length(joints, 1)
+    # plt.show()
+    data_path = mn.set_data_folder()
+    save_dir = mn.set_data_folder() + "/results/"
+    compare_number_of_joints_fish_data(data_path, save_dir)
