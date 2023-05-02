@@ -474,7 +474,15 @@ def use_all_folder_data(generation_method, data_path, save_path, **parameters):
         plt.cla()
 
 
-def compare_number_of_joints_fish_data(data_path, save_dir):
+def compare_number_of_joints_fish_data(data_path, save_dir, *resolution_division):
+    """
+    Compares method of generating joints by removing data points until targeted number of joints is achieved.
+    Saves data like time and total area error to a .csv file
+    :param data_path: directory of the fish midline data
+    :param save_dir: directory of where to save the results to
+    :param resolution_division: option to divide resolution of fish data to increase processing speed
+    :return: None
+    """
     all_files = glob.glob(data_path + '/*.xls')
     print("all_files: ", all_files)
 
@@ -485,9 +493,9 @@ def compare_number_of_joints_fish_data(data_path, save_dir):
 
     for f in range(len(all_files)-1):
         fish_midline = mn.load_midline_data(all_files[f])
-        for j in range(4, 6):
+        for j in range(4, 7):
             start_time = time.perf_counter()
-            joints = gm_a.generate_segments_to_quantity(fish_midline, j)
+            joints = gm_a.generate_segments_to_quantity(fish_midline, j, resolution_division[0])
             total_time = time.perf_counter() - start_time
 
             total_area_error = ce.find_total_area_error(joints, fish_midline)
@@ -523,4 +531,4 @@ def gather_data():
 
     data_path = mn.set_data_folder()
     save_dir = mn.set_data_folder() + "/results/"
-    compare_number_of_joints_fish_data(data_path, save_dir)
+    compare_number_of_joints_fish_data(data_path, save_dir, 10)

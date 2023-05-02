@@ -307,7 +307,7 @@ def grow_segments_from_inflection(midline, error_threshold_area):
     return joints
 
 
-def generate_segments_to_max_area_error(midline, total_area_max):
+def generate_segments_to_max_area_error(midline, total_area_max, *resolution_division):
     """
     Creates a joint configuration by starting with a joint for each midline point and greedily removing
     the joint that would increase error by the smallest amount until the total error is over the threshold
@@ -317,8 +317,12 @@ def generate_segments_to_max_area_error(midline, total_area_max):
     """
     joints = [[0 for _ in range(3)] for _ in range(0)]
 
-    for j in range(len(midline)):
-        joints.append([midline[j][0][0], midline[j][0][1], j])
+    if resolution_division:
+        for j in range(0, len(midline), resolution_division[0]):
+            joints.append([midline[j][0][0], midline[j][0][1], j])
+    else:
+        for j in range(len(midline)):
+            joints.append([midline[j][0][0], midline[j][0][1], j])
 
     total_area_error = 0
 
@@ -349,18 +353,23 @@ def generate_segments_to_max_area_error(midline, total_area_max):
     return joints
 
 
-def generate_segments_to_quantity(midline, max_number_of_segments):
+def generate_segments_to_quantity(midline, max_number_of_segments, *resolution_division):
     """
     Creates a joint configuration by starting off with a joint for each midline point, and removing
-    the joints that would increase the error by the least amount until there are only a given amount of joints left
+    the joints that would increase the error by the least amount until there are only a given amount of joints left.
+    This can take a long time so a resolution division reduces data points to speed things up at the cost of accuracy
     :param midline: the midline of the fish
     :param max_number_of_segments: the maximum number of segments to build
     :return: array of where the joints should be along the midline
     """
     joints = [[0 for _ in range(3)] for _ in range(0)]
 
-    for j in range(len(midline)):
-        joints.append([midline[j][0][0], midline[j][0][1], j])
+    if resolution_division:
+        for j in range(0, len(midline), resolution_division[0]):
+            joints.append([midline[j][0][0], midline[j][0][1], j])
+    else:
+        for j in range(len(midline)):
+            joints.append([midline[j][0][0], midline[j][0][1], j])
 
     total_area_error = 0
 
