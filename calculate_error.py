@@ -4,11 +4,19 @@ import copy
 
 
 def find_area_error(segment_beginning, segment_end, frame, midline):
+    """
+    Finds the total area between a joints and the actual midline
+    :param segment_beginning: The start of the joint
+    :param segment_end: The end of the joint
+    :param frame: which column of midline data
+    :param midline: The fish midline data
+    :return: The total area error between the joints and midline
+    """
     lowest_point = 0
     area_under_midline = 0
     area_under_joint = 0
 
-    # find lowest point on the y axis and shift frame so all y values above 0
+    # find the lowest point on the y axis and shift frame so all y values above 0
     for i in range(len(midline)):
         if midline[i][frame][1] < lowest_point:
             lowest_point = midline[i][frame][1]
@@ -31,7 +39,7 @@ def find_area_error(segment_beginning, segment_end, frame, midline):
         area_minor = (abs(mp_s[0] - mp_e[0]) * abs(mp_s[1] - mp_e[1])) / 2
         area_under_midline += (area_major + area_minor)
 
-    # find area under line
+    # find area under the line
     joint_s = copy.deepcopy(midline[segment_beginning][frame])
     joint_e = copy.deepcopy(midline[segment_end][frame])
 
@@ -54,8 +62,14 @@ def find_area_error(segment_beginning, segment_end, frame, midline):
     return error
 
 
-# finds error by calculating distance between perpendicular of joint and midline area
 def find_linear_error(segment_beginning, segment_end, midline_point):
+    """
+    Finds error by calculating distance between perpendicular of joint and midline area
+    :param segment_beginning: The start of the joint
+    :param segment_end: The end of the joint
+    :param midline_point: the part of the midline we are calculating error for
+    :return: The error for the midline point and joint configuration
+    """
     if segment_end[1] - segment_beginning[1] == 0 or segment_end[0] - segment_beginning[0] == 0:
         # gradient is 0 so perpendicular line is undefined
         return 0
@@ -74,6 +88,12 @@ def find_linear_error(segment_beginning, segment_end, midline_point):
 
 
 def find_total_error(joints, midline):
+    """
+    Finds the total linear and area error across all joints and the midline
+    :param joints: the joint configuration of the fish
+    :param midline: the midline data of the fish
+    :return: an array with [total linear error, total area error]
+    """
     # for each joint starting from the tip to the end, find the cumalitve error
     total_linear_error = 0
     total_area_error = 0

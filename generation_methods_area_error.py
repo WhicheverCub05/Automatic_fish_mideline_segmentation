@@ -2,9 +2,14 @@
 import calculate_error as ce
 
 
-# growth method from Dr.Otar's paper. An increment is made and compared for max error for each frame.
-# If the avg error is below the threshold, add an increment and compare avg max error.
 def grow_segments(midline, error_threshold_area):
+    """
+    Growth method from Dr.Otar's paper. An increment is made and compared for area (error) for each frame.
+    If the avg error is below the threshold, add an increment and compare avg max error.
+    :param midline: the midline of the fish
+    :param error_threshold_area: the area between the midline and segment
+    :return: array of where the joints should be along the midline
+    """
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
 
@@ -53,9 +58,14 @@ def grow_segments(midline, error_threshold_area):
     return joints
 
 
-# Grows the segments but uses a binary search technique.
-# Joints are compared from start to the end of the midline, and halved if max error is over threshold
 def grow_segments_binary_search(midline, error_threshold_area):
+    """
+    Grows the segments but uses a binary search technique.
+    Joints are compared from start to the end of the midline, and halved if max error is over threshold
+    :param midline: the midline of the fish
+    :param error_threshold_area: the area between the midline and segment
+    :return: array of where the joints should be along the midline
+    """
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
 
@@ -128,10 +138,14 @@ def grow_segments_binary_search(midline, error_threshold_area):
     return joints
 
 
-# another option - for each joint, generate segments for 1 frame. try segment on other frames and reduce size as needed
-
-# optimises the generation method by using greedy binary search
 def grow_segments_binary_search_midpoint_only(midline, error_threshold_area):
+    """
+    Works like the binary search generation method but is greedy but
+    only finds the error from one value (the middle value)
+    :param midline: the midline of the fish
+    :param error_threshold_area: the area between the midline and segment
+    :return: array of where the joints should be along the midline
+    """
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
 
@@ -205,10 +219,15 @@ def grow_segments_binary_search_midpoint_only(midline, error_threshold_area):
     return joints
 
 
-# finds a point with the highest gradient from current joint
-# and tries to add a joint if the avg error for all frames is less than threshold.
-# if the joint can't be added due to high error, try out previous midline points until the joint can be added
 def grow_segments_from_inflection(midline, error_threshold_area):
+    """
+    Finds a point with the highest gradient from current joint and tries
+    to add a joint if the avg error for all frames is less than threshold.
+    If the joint can't be added due to high error, try out previous midline points until the joint can be added
+    :param midline: the midline of the fish
+    :param error_threshold_area: the area between the midline and segment
+    :return: array of where the joints should be along the midline
+    """
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])
 

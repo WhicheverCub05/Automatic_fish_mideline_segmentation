@@ -2,8 +2,14 @@
 import calculate_error as ce
 
 
-# implementation of equally divided segments
 def create_equal_segments(midline, segment_count, *frame):
+    """
+    implementation of equally divided segments
+    :param midline: the midline of the fish
+    :param segment_count: number of segments to create
+    :param frame: which midline wave/column to create segments
+    :return: array of where the joints should be along the midline
+    """
     joints = [[0 for _ in range(3)] for _ in range(0)]
     column = 0
 
@@ -19,8 +25,14 @@ def create_equal_segments(midline, segment_count, *frame):
     return joints
 
 
-# create segments of diminishing size but add up to 1
 def create_diminishing_segments(midline, segment_count, *frame):
+    """
+    create segments of diminishing size but add up to the midline length
+    :param midline: the midline of the fish
+    :param segment_count: number of segments to create
+    :param frame: which midline wave/column to create segments
+    :return: array of where the joints should be along the midline
+    """
     joints = [[0 for _ in range(3)] for _ in range(0)]
     length = len(midline)
     increment = 0
@@ -39,9 +51,15 @@ def create_diminishing_segments(midline, segment_count, *frame):
     return joints
 
 
-# growth method from Dr.Otar's paper. An increment is made and compared for max error for each frame.
-# If the avg error is below the threshold, add an increment and compare avg max error.
+#
 def grow_segments(midline, error_threshold):
+    """
+    Growth method from Dr.Otar's paper. An increment is made and compared for max linear distance (error) for each frame.
+    If the avg error is below the threshold, add an increment and compare avg max error.
+    :param midline: the midline of the fish
+    :param error_threshold: the maximum perpendicular distance (in cm) between the midline and segment
+    :return: array of where the joints should be along the midline
+    """
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
 
@@ -93,9 +111,14 @@ def grow_segments(midline, error_threshold):
     return joints
 
 
-# Grows the segments but uses a binary search technique.
-# Joints are compared from start to the end of the midline, and halved if max error is over threshold
 def grow_segments_binary_search(midline, error_threshold):
+    """
+    Grows the segments but uses a binary search technique.
+    Joints are compared from start to the end of the midline, and halved if max error is over threshold
+    :param midline: the midline of the fish
+    :param error_threshold: the maximum perpendicular distance (in cm) between the midline and segment
+    :return: array of where the joints should be along the midline
+    """
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
 
@@ -170,14 +193,17 @@ def grow_segments_binary_search(midline, error_threshold):
             # print("avg_end_error:", avg_end_error / len(midline[0]), " avg_joint:", avg_joint)
             completed = True
 
-    # joints.pop()
     return joints
 
 
-# another option - for each joint, generate segments for 1 frame. try segment on other frames and reduce size as needed
-
-# optimises the generation method by using greedy binary search
 def grow_segments_binary_search_midpoint_only(midline, error_threshold):
+    """
+    Works like the binary search generation method but is greedy but
+    only finds the error from one value (the middle value)
+    :param midline: the midline of the fish
+    :param error_threshold: the maximum perpendicular distance (in cm) between the midline and segment
+    :return: array of where the joints should be along the midline
+    """
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
 
@@ -251,10 +277,15 @@ def grow_segments_binary_search_midpoint_only(midline, error_threshold):
     return joints
 
 
-# finds a point with the highest gradient from current joint
-# and tries to add a joint if the avg error for all frames is less than threshold.
-# if the joint can't be added due to high error, try out previous midline points until the joint can be added
 def grow_segments_from_inflection(midline, error_threshold):
+    """
+    Finds a point with the highest gradient from current joint and tries
+    to add a joint if the avg error for all frames is less than threshold.
+    If the joint can't be added due to high error, try out previous midline points until the joint can be added
+    :param midline: the midline of the fish
+    :param error_threshold: the maximum perpendicular distance (in cm) between the midline and segment
+    :return: array of where the joints should be along the midline
+    """
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])
 

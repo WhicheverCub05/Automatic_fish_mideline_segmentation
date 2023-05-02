@@ -11,8 +11,13 @@ fig = plt.figure()
 ax1 = fig.add_subplot(1, 1, 1)
 
 
-# when called by matplotlib FuncAnimation, it shows how area is calculated to find error using area
+#
 def animate_area_error(i):
+    """
+    when called by matplotlib FuncAnimation, it shows how area is calculated to find error using area
+    :param i: incrementing variable when called by FuncAnimation
+    :return: None
+    """
     global data_frame
     global fish_midline
     global ani
@@ -54,9 +59,13 @@ def animate_area_error(i):
     error_line.remove()
 
 
-# when called by matplotlib FuncAnimation, it shows the midline being generated step by step
-# Also, when called by FuncAnimation, 'i' is incremented each time
 def linear_demonstration_animated(i):
+    """
+    when called by matplotlib FuncAnimation, it shows the midline being generated step by step
+    Also, when called by FuncAnimation, 'i' is incremented each time
+    :param i: incrementing variable when called by FuncAnimation
+    :return: None
+    """
     threshold_error = 3
     max_error = 0
     global fish_midline

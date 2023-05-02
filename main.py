@@ -1,5 +1,12 @@
+"""
+This file contains functions for a CLI interface which lets the user try different functions and save the results. 
+Methods to create sine waves to test the methods is also implemented here 
+"""
+
+__author__ = "Alex R.d Silva"
+__version__ = '1.0'
+
 # importing local project libraries
-import calculate_error
 import generation_methods_linear_error as gm_l
 import generation_methods_area_error as gm_a
 import gather_data as gd
@@ -13,11 +20,14 @@ import os.path
 from os import path
 import sys
 import glob
-import time
 
 
-# creates a 2D array of x,y values for each frame in the Excel file
 def load_midline_data(location):
+    """
+    Loads .xls files and creates a 3D array of rows, columns and [x, y] values that define the midline
+    :param location: location of Excel file with midlines 
+    :return: the midline from the Excel file 
+    """
     print("Loading:", location)
     try:
         file_data = pd.read_excel(location)
@@ -38,24 +48,73 @@ def load_midline_data(location):
         print("the file is not found")
 
 
-def generate_midline_from_sinewave(frequency, amplitude, length_cm, phase_difference, frames, resolution):
+def set_data_folder():
+    # get file path from user, load data
+    print("-Set the file location of the database-")
+
+    files_found = False
+    folder_path = ""
+
+    if len(sys.argv) > 1:
+        folder_path = sys.argv[1]
+        print("sys.arg", sys.argv)
+
+    while not files_found:
+        if folder_path == "":
+            folder_path = input("please input the file location:")
+
+        if path.exists(folder_path):
+            files = glob.glob(folder_path + '/*.xls')
+            if len(files) > 0:
+                print("Excel files found:", files)
+                files_found = True
+            else:
+                print("Cannot find any excel files (.xls)")
+                folder_path = ""
+        else:
+            print("Folder not found or no permissions to access it")
+            print("FP:", folder_path)
+            folder_path = ""
+
+    print("Using folder path:", folder_path)
+
+    return folder_path
+
+
+def generate_midline_from_sinewave(cycles, amplitude, length_cm, phase_difference, frames, resolution):
+    """
+    Function creates midlines from a sine wave that match the 3D data structure of a midline for this application.
+    the x and y values for each sinewave are in an array and multiple sine waves are in the midline.
+    e.g. midline with: resolution = 200, 4 waves -> len(midline) = 200, len(midline[0]) = 4, midline[0][0] = [x ,y]
+    :param cycles: number of complete cycles
+    :param amplitude: max length in y and -y in cm
+    :param length_cm: total length of the sine wave in cm
+    :param phase_difference: phase difference between subsequent sine waves
+    :param frames: number of different sine waves in the midline
+    :param resolution: number of data points that describe a sine wave
+    :return: 3D array of each sine wave x and y position for each frame.
+    """
     midline = [[[0 for _ in range(2)] for _ in range(frames)] for _ in range(resolution)]
-    x_values = np.linspace(0, length_cm, num=resolution)  # describes a 100cm sinewave
+    x_values = np.linspace(0, length_cm, num=resolution)
 
     phase = 0
 
     for f in range(frames):
         for r in range(resolution):
             midline[r][f][0] = x_values[r]
-            midline[r][f][1] = np.sin((((x_values * frequency) / length_cm) * 2 * np.pi) + phase)[r] * amplitude
+            midline[r][f][1] = np.sin((((x_values * cycles) / length_cm) * 2 * np.pi) + phase)[r] * amplitude
         phase += phase_difference
 
-    # plot_midline(midline)
     return midline
 
 
-# asks the user to set a filepath to save their data to
 def get_user_save_path(data_path, *save_path):
+    """
+    Gets save path from user that results of data like graphs or .csv files can be saved to
+    :param data_path: directory of the fish midline data 
+    :param save_path: directory of a folder that can be saved to 
+    :return: None
+    """
     while 1:
         if save_path:
             folder_path = save_path
@@ -96,8 +155,14 @@ def get_user_save_path(data_path, *save_path):
     return folder_path
 
 
-# each frame of the midline
+# plots 
 def plot_midline(midline, *frames):
+    """
+    Function that allows for the midline and selected frames to be plotted using matplotlib
+    :param midline: The fish midline to plot
+    :param frames: Which frame or column of midline data to plot
+    :return: None
+    """
     if frames:
         for f in frames:
             x = []
@@ -120,8 +185,13 @@ def plot_midline(midline, *frames):
     plt.ylabel("y / cm")
 
 
-# turn joint data to actual lengths
 def joints_to_length(joints, *plot_on_first_frame):
+    """
+    Turns joint data into actual lengths that can be used to create real segments for a robot fish
+    :param joints: The joint configuration data -> [[x, y, midline_row], ...]
+    :param plot_on_first_frame: Option to plot the joints on the first frame of the midline instead of a straight line
+    :return: array of lengths between the joints
+    """
     segments = [0]
     length = 0
     plt.scatter(length, 0, color='red', label="start of head")
@@ -156,53 +226,13 @@ def joints_to_length(joints, *plot_on_first_frame):
     return segments
 
 
-# This function is used to generate .svg graphs using all the Excel data in a directory
-# and then saves them to the user's path
-def use_all_folder_data(generation_method, data_path, save_path, **parameters):
-    all_files = glob.glob(data_path + '/*.xls')
-    print("all_files: ", all_files)
-
-    for f in range(len(all_files) - 1):
-        fish_midline = load_midline_data(all_files[f])
-        start_time = time.perf_counter()
-
-        if 'error_threshold' in parameters:
-            joints = generation_method(midline=fish_midline, error_threshold=parameters['error_threshold'])
-        elif 'segment_count' in parameters:
-            joints = generation_method(midline=fish_midline, segment_count=parameters['segment_count'])
-        else:
-            joints = generation_method(midline=fish_midline)
-
-        generation_time = time.perf_counter() - start_time
-
-        print("- Generation method: ", generation_method.__name__, f" time: {generation_time:.4f}s", " -")
-
-        for i in [0, 7]:
-            for j in range(len(joints)):
-                plt.scatter(fish_midline[joints[j][2]][i][0],
-                            fish_midline[joints[j][2]][i][1], color='green')
-
-        plot_midline(fish_midline, 0, 7)
-
-        joints_to_length(joints)
-
-        plt.title(all_files[f][len(all_files[f]) - 30:])
-        plt.xlabel('x')
-        plt.ylabel('y')
-
-        filename = save_path + "/" + generation_method.__name__ + str(parameters) + \
-                   all_files[f][len(all_files[f]) - 30:len(all_files[f]) - 15:1] + '.svg'
-        try:
-            plt.savefig(filename)
-            print("saved file:", filename)
-        except FileNotFoundError:
-            print("Something is up with the filename or directory. Please check that the following file exists: ",
-                  filename)
-
-        plt.cla()
-
-
 def pick_method_and_save_all(data_path, *save_path):
+    """
+    CLI interface that allows user to create graphs using their selected generation method and midline data
+    :param data_path: directory of fish midline data
+    :param save_path: directory to save the graphs
+    :return: None
+    """
     error_threshold = 0
     segment_count = 0
 
@@ -250,16 +280,16 @@ def pick_method_and_save_all(data_path, *save_path):
                     break
 
             if user_selection == 'sg':
-                use_all_folder_data(gm_l.grow_segments, data_path, user_save_path, error_threshold=error_threshold)
+                gd.use_all_folder_data(gm_l.grow_segments, data_path, user_save_path, error_threshold=error_threshold)
             elif user_selection == 'sg_i':
-                use_all_folder_data(gm_l.grow_segments_from_inflection, data_path, user_save_path,
-                                    error_threshold=error_threshold)
+                gd.use_all_folder_data(gm_l.grow_segments_from_inflection, data_path, user_save_path,
+                                       error_threshold=error_threshold)
             elif user_selection == 'sg_bs':
-                use_all_folder_data(gm_l.grow_segments_binary_search, data_path, user_save_path,
-                                    error_threshold=error_threshold)
+                gd.use_all_folder_data(gm_l.grow_segments_binary_search, data_path, user_save_path,
+                                       error_threshold=error_threshold)
             elif user_selection == 'sg_bs_mp':
-                use_all_folder_data(gm_l.grow_segments_binary_search_midpoint_only, data_path, user_save_path,
-                                    error_threshold=error_threshold)
+                gd.use_all_folder_data(gm_l.grow_segments_binary_search_midpoint_only, data_path, user_save_path,
+                                       error_threshold=error_threshold)
 
         elif user_selection == 'es' or user_selection == 'ds':
             while 1:
@@ -273,10 +303,11 @@ def pick_method_and_save_all(data_path, *save_path):
                     break
 
             if user_selection == 'es':
-                use_all_folder_data(gm_l.create_equal_segments, data_path, user_save_path, segment_count=segment_count)
+                gd.use_all_folder_data(gm_l.create_equal_segments, data_path, user_save_path,
+                                       segment_count=segment_count)
             elif user_selection == 'ds':
-                use_all_folder_data(gm_l.create_diminishing_segments, data_path, user_save_path,
-                                    segment_count=segment_count)
+                gd.use_all_folder_data(gm_l.create_diminishing_segments, data_path, user_save_path,
+                                       segment_count=segment_count)
 
         elif user_selection == 'ce':
             while 1:
@@ -302,57 +333,19 @@ def pick_method_and_save_all(data_path, *save_path):
             print("\nInvalid selection, please try again\n")
 
 
-# sets the folder location of the Excel data that we use
-def set_data_folder():
-    # get file path from user, load data
-    print("-Set the file location of the database-")
-
-    files_found = False
-    folder_path = ""
-
-    if len(sys.argv) > 1:
-        folder_path = sys.argv[1]
-        print("sys.arg", sys.argv)
-
-    while not files_found:
-        if folder_path == "":
-            folder_path = input("please input the file location:")
-
-        if path.exists(folder_path):
-            files = glob.glob(folder_path + '/*.xls')
-            if len(files) > 0:
-                print("Excel files found:", files)
-                files_found = True
-            else:
-                print("Cannot find any excel files (.xls)")
-                folder_path = ""
-        else:
-            print("Folder not found or no permissions to access it")
-            print("FP:", folder_path)
-            folder_path = ""
-
-    print("Using folder path:", folder_path)
-
-    return folder_path
-
-
 # run code only when called as a script
 if __name__ == "__main__":
-
-    # eel_midline = generate_midline_from_sinewave(1.7, 22, 110, (np.pi*2/10), 10, 200)
-    # eel_joints = gm_l.grow_segments(eel_midline, 4)  # error: [1:12 joints (excluding head), 2:8, 3:7, 4:6]
-    # total_error = calculate_error.find_total_error(eel_joints, eel_midline)
-    # print("eel joints: ", eel_joints, " length: ", len(eel_joints), " error: ", total_error)
-    save_dir = set_data_folder() + "/results/"
+    # save_dir = set_data_folder() + "/results/"
     # gd.compare_all_methods_linear_error_sinewave(save_dir)
-    directory = set_data_folder()
-
+    # directory = set_data_folder()
+    """
     gd.compare_linear_and_area_error(directory, save_dir, gm_l.grow_segments, gm_a.grow_segments,
                                      gm_l.grow_segments_binary_search, gm_a.grow_segments_binary_search,
                                      gm_l.grow_segments_binary_search_midpoint_only,
                                      gm_a.grow_segments_binary_search_midpoint_only,
                                      gm_l.grow_segments_from_inflection, gm_a.grow_segments_from_inflection)
+    """
 
-    pick_method_and_save_all(data_path=directory)
+    # pick_method_and_save_all(data_path=directory)
 
-
+    gd.gather_data()
