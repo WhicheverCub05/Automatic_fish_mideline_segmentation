@@ -520,6 +520,7 @@ def gather_data():
     # mn.plot_midline(eel_midline, 0)
     # mn.joints_to_length(joints, 1)
     # plt.show()
+
     data_path = mn.set_data_folder()
     save_dir = mn.set_data_folder() + "/results/"
     compare_number_of_joints_fish_data(data_path, save_dir)
