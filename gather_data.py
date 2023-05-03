@@ -483,31 +483,82 @@ def compare_number_of_joints_fish_data(data_path, save_dir, *resolution_division
     :param resolution_division: option to divide resolution of fish data to increase processing speed
     :return: None
     """
-    all_files = glob.glob(data_path + '/*.xls')
-    print("all_files: ", all_files)
 
-    csv_file = open(save_dir + "compare_number_of_joints_fish_data" + '.csv', 'w')
+    division = 1
+
+    if resolution_division:
+        division = resolution_division[0]
+
+    all_files = glob.glob(data_path + '/*.xls')
+
+    csv_file = open(save_dir + f"compare_number_of_joints_fish_data(division:{division})" + '.csv', 'w')
     csv_file_writer = csv.writer(csv_file)
 
-    csv_file_writer.writerow(["Midline filename", "", "Number of joints", "Total_area_error", "Time taken"])
+    csv_file_writer.writerow(["Midline filename", "", "Number of joints", "Total_area_error", "Time taken",
+                              "resolution division"])
 
-    for f in range(len(all_files)-1):
+    for f in range(all(all_files)):
         fish_midline = mn.load_midline_data(all_files[f])
-        for j in range(4, 7):
+        for j in range(3, 8):
             start_time = time.perf_counter()
-            joints = gm_a.generate_segments_to_quantity(fish_midline, j, resolution_division[0])
+            joints = gm_a.generate_segments_to_quantity(fish_midline, j, division)
             total_time = time.perf_counter() - start_time
 
             total_area_error = ce.find_total_area_error(joints, fish_midline)
 
-            csv_file_writer.writerow([all_files[f], "", len(joints), total_area_error, total_time])
+            csv_file_writer.writerow([all_files[f], "", len(joints), total_area_error, total_time, division])
 
             print(f"file:{all_files[f]}, number of joints:{j}, total_area_error:{total_area_error:.2f}, "
-                  f"time taken:{total_time:.3f}")
+                  f"time taken:{total_time:.3f}, resolution division:{division}")
 
         csv_file_writer.writerow("")
         csv_file_writer.writerow("")
 
+
+def compare_starting_point_grow_segments_area_fish_data(data_path, save_dir):
+    """
+    Visual tests to compare joint configuration when starting from hear or tail. Results are saved
+    :param save_dir: directory of where to save the results to
+    :param data_path: directory of the fish midline data
+    :return: None
+    """
+    csv_file = open(save_dir + f"compare_starting_point_grow_segments_area_fish_data()" + '.csv', 'w')
+    csv_file_writer = csv.writer(csv_file)
+
+    csv_file_writer.writerow(["Midline filename", "area error threshold", "forward number of joints",
+                              "forward total area error", "reversed number of joints", "reversed total area error"])
+
+    all_files = glob.glob(data_path + '/*.xls')
+
+    midline = mn.load_midline_data(all_files[0])
+
+    midline_reversed = [[[0 for _ in range(2)] for _ in range(len(midline[0]))] for _ in range(len(midline))]
+
+    for f in range(len(midline[0])):
+        for r in reversed(range(len(midline))):
+
+            midline_reversed[abs(r - 199)][f][0] = midline[r][f][0]
+            midline_reversed[abs(r - 199)][f][1] = midline[r][f][1]
+
+    for error_threshold in range(2, 200, 2):
+        joints = gm_a.grow_segments(midline, error_threshold)
+        joints_reversed = gm_a.grow_segments(midline_reversed, error_threshold)
+
+        joints_total_error = ce.find_total_area_error(joints, midline)
+        joints_reversed_total_error = ce.find_total_area_error(joints_reversed, midline)
+        print(f"total area error:{joints_total_error:.2f}, "
+              f"reversed:{joints_reversed_total_error:.2f}")
+        csv_file_writer.writerow([all_files[0], error_threshold, len(joints), joints_total_error, len(joints_reversed), joints_reversed_total_error])
+
+        # mn.plot_midline(midline, 0)
+        # mn.joints_to_length(joints, 1)
+        # plt.show()
+        # plt.cla()
+
+        # mn.plot_midline(midline, 0)
+        # mn.joints_to_length(joints_reversed, 1)
+        # plt.show()
+        # plt.cla()
 
 
 def gather_data():
@@ -530,5 +581,5 @@ def gather_data():
     # plt.show()
 
     data_path = mn.set_data_folder()
-    save_dir = mn.set_data_folder() + "/results/"
-    compare_number_of_joints_fish_data(data_path, save_dir, 10)
+    save_dir = data_path + "/results/"
+    compare_starting_point_grow_segments_area_fish_data(data_path, save_dir)

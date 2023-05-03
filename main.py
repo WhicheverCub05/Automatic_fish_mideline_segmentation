@@ -218,7 +218,7 @@ def joints_to_length(joints, *plot_on_first_frame):
         else:
             plt.scatter(joints[i + 1][0], 0, color='black', label=f'{joints[i + 1][2]} ({length_difference:.2f}cm)')
         # plt.annotate('(%d)' % joints[i + 1][2], (length, i % 2))
-        plt.annotate('%d' % joints[i + 1][2], (joints[i + 1][0] + 0.1, joints[i + 1][1] + 0.05))
+        # plt.annotate('%d' % joints[i + 1][2], (joints[i + 1][0] + 0.1, joints[i + 1][1] + 0.05))
         plt.legend(loc="best")
     return segments
 
