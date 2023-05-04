@@ -606,8 +606,6 @@ def compare_area_method_with_brute_force_joint_count(generation_method, error_th
                                   total_area_brute_force])
 
 
-
-
 def gather_data():
     """
     This Method is where I arrange which methods to run. This Function is then called in main.py
