@@ -506,9 +506,9 @@ def compare_number_of_joints_fish_data(data_path, save_dir, *resolution_division
 
             total_area_error = ce.find_total_area_error(joints, fish_midline)
 
-            csv_file_writer.writerow([all_files[f], "", len(joints), total_area_error, total_time, division])
+            csv_file_writer.writerow([os.path.basename(all_files[f]), "", len(joints), total_area_error, total_time, division])
 
-            print(f"file:{all_files[f]}, number of joints:{j}, total_area_error:{total_area_error:.2f}, "
+            print(f"file:{os.path.basename(all_files[f])}, number of joints:{j}, total_area_error:{total_area_error:.2f}, "
                   f"time taken:{total_time:.3f}, resolution division:{division}")
 
         csv_file_writer.writerow("")
@@ -536,7 +536,6 @@ def compare_starting_point_grow_segments_area_fish_data(data_path, save_dir):
 
     for f in range(len(midline[0])):
         for r in reversed(range(len(midline))):
-
             midline_reversed[abs(r - 199)][f][0] = midline[r][f][0]
             midline_reversed[abs(r - 199)][f][1] = midline[r][f][1]
 
@@ -548,7 +547,8 @@ def compare_starting_point_grow_segments_area_fish_data(data_path, save_dir):
         joints_reversed_total_error = ce.find_total_area_error(joints_reversed, midline)
         print(f"total area error:{joints_total_error:.2f}, "
               f"reversed:{joints_reversed_total_error:.2f}")
-        csv_file_writer.writerow([all_files[0], error_threshold, len(joints), joints_total_error, len(joints_reversed), joints_reversed_total_error])
+        csv_file_writer.writerow([os.path.basename(all_files[0]), error_threshold, len(joints), joints_total_error, len(joints_reversed),
+                                  joints_reversed_total_error])
 
         # mn.plot_midline(midline, 0)
         # mn.joints_to_length(joints, 1)
@@ -559,6 +559,53 @@ def compare_starting_point_grow_segments_area_fish_data(data_path, save_dir):
         # mn.joints_to_length(joints_reversed, 1)
         # plt.show()
         # plt.cla()
+
+
+def compare_area_method_with_brute_force_joint_count(generation_method, error_threshold, data_path, save_dir,
+                                                     *resolution_division):
+    """
+    Compares the total area error for the same number of joints made by the generation method
+    to the method generate_segments_to_quantity()
+    :param generation_method: The generation method to be compared
+    :param error_threshold: the error threshold of the generation method
+    :param data_path: directory of the fish midline data
+    :param save_dir: directory of where to save the results to
+    :param resolution_division: optional variable to reduce the resolution of the midline data for the brute force method
+    :return:
+    """
+
+    csv_file = open(save_dir + f"compare_starting_point_grow_segments_area_fish_data()" + '.csv', 'w')
+    csv_file_writer = csv.writer(csv_file)
+
+    csv_file_writer.writerow(["Midline filename", "area error threshold", "brute force resolution division",
+                              f"{generation_method.__name__} number of joints",
+                              f"{generation_method.__name__} total area error", "brute force number of joints",
+                              "brute force total area error"])
+
+    all_files = glob.glob(data_path + '/*.xls')
+
+    error_threshold = 150
+
+    if resolution_division:
+        resolution_division = resolution_division[0]
+    else:
+        resolution_division = 1
+
+    for midline_file in all_files:
+        midline = mn.load_midline_data(midline_file)
+
+        generation_method_joints = generation_method(error_threshold=error_threshold, midline=midline)
+        brute_force_joints = gm_a.generate_segments_to_quantity(midline, len(generation_method_joints),
+                                                                resolution_division[0])
+
+        total_area_generation_method = ce.find_total_area_error(generation_method_joints, midline)
+        total_area_brute_force = ce.find_total_area_error(brute_force_joints, midline)
+
+        csv_file_writer.writerow([os.path.basename(midline_file), error_threshold, resolution_division[0],
+                                  len(generation_method_joints), total_area_generation_method, len(brute_force_joints),
+                                  total_area_brute_force])
+
+
 
 
 def gather_data():

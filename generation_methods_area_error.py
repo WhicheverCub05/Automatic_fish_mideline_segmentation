@@ -353,13 +353,13 @@ def generate_segments_to_max_area_error(midline, total_area_max, *resolution_div
     return joints
 
 
-def generate_segments_to_quantity(midline, max_number_of_segments, *resolution_division):
+def generate_segments_to_quantity(midline, max_number_of_joints, *resolution_division):
     """
     Creates a joint configuration by starting off with a joint for each midline point, and removing
     the joints that would increase the error by the least amount until there are only a given amount of joints left.
     This can take a long time so a resolution division reduces data points to speed things up at the cost of accuracy
     :param midline: the midline of the fish
-    :param max_number_of_segments: the maximum number of segments to build
+    :param max_number_of_joints: the maximum number of segments to build
     :return: array of where the joints should be along the midline
     """
     joints = [[0 for _ in range(3)] for _ in range(0)]
@@ -375,7 +375,7 @@ def generate_segments_to_quantity(midline, max_number_of_segments, *resolution_d
 
     print("error rn: ", ce.find_total_error(joints, midline)[1])
 
-    while len(joints) > max_number_of_segments:
+    while len(joints) > max_number_of_joints:
         lowest_joint_error = 1000
         lowest_joint_error_index = 0
         # has to start at joint that is not the start or else it'll start eating up the joints
