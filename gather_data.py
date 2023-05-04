@@ -584,7 +584,7 @@ def compare_area_method_with_brute_force_joint_count(generation_method, error_th
 
     all_files = glob.glob(data_path + '/*.xls')
 
-    error_threshold = 150
+    error_threshold = error_threshold
 
     if resolution_division:
         resolution_division = resolution_division[0]
@@ -594,14 +594,16 @@ def compare_area_method_with_brute_force_joint_count(generation_method, error_th
     for midline_file in all_files:
         midline = mn.load_midline_data(midline_file)
 
-        generation_method_joints = generation_method(error_threshold=error_threshold, midline=midline)
+        print(f"using file: {os.path.basename(midline_file)}")
+
+        generation_method_joints = generation_method(error_threshold_area=error_threshold, midline=midline)
         brute_force_joints = gm_a.generate_segments_to_quantity(midline, len(generation_method_joints),
-                                                                resolution_division[0])
+                                                                resolution_division)
 
         total_area_generation_method = ce.find_total_area_error(generation_method_joints, midline)
         total_area_brute_force = ce.find_total_area_error(brute_force_joints, midline)
 
-        csv_file_writer.writerow([os.path.basename(midline_file), error_threshold, resolution_division[0],
+        csv_file_writer.writerow([os.path.basename(midline_file), error_threshold, resolution_division,
                                   len(generation_method_joints), total_area_generation_method, len(brute_force_joints),
                                   total_area_brute_force])
 
@@ -627,4 +629,4 @@ def gather_data():
 
     data_path = mn.set_data_folder()
     save_dir = data_path + "/results/"
-    compare_starting_point_grow_segments_area_fish_data(data_path, save_dir)
+    compare_area_method_with_brute_force_joint_count(gm_a.grow_segments, 150, data_path, save_dir, 2)
