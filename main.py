@@ -81,38 +81,12 @@ def set_data_folder():
     return folder_path
 
 
-def generate_midline_from_sinewave(cycles, amplitude, length_cm, phase_difference, frames, resolution):
-    """
-    Function creates midlines from a sine wave that match the 3D data structure of a midline for this application.
-    the x and y values for each sinewave are in an array and multiple sine waves are in the midline.
-    e.g. midline with: resolution = 200, 4 waves -> len(midline) = 200, len(midline[0]) = 4, midline[0][0] = [x ,y]
-    :param cycles: number of complete cycles
-    :param amplitude: max length in y and -y in cm
-    :param length_cm: total length of the sine wave in cm
-    :param phase_difference: phase difference between subsequent sine waves
-    :param frames: number of different sine waves in the midline
-    :param resolution: number of data points that describe a sine wave
-    :return: 3D array of each sine wave x and y position for each frame.
-    """
-    midline = [[[0 for _ in range(2)] for _ in range(frames)] for _ in range(resolution)]
-    x_values = np.linspace(0, length_cm, num=resolution)
-
-    phase = 0
-
-    for f in range(frames):
-        for r in range(resolution):
-            midline[r][f][0] = x_values[r]
-            midline[r][f][1] = np.sin((((x_values * cycles) / length_cm) * 2 * np.pi) + phase)[r] * amplitude
-        phase += phase_difference
-
-    return midline
-
-
 def get_user_save_path(data_path, *save_path):
     """
-    Gets save path from user that results of data like graphs or .csv files can be saved to
-    :param data_path: directory of the fish midline data 
-    :param save_path: directory of a folder that can be saved to 
+    Gets save path from user that results of data like graphs or .csv files can be saved to.
+    Also saves the results in a folder called 'results' which it can create if
+    :param data_path: directory of the fish midline data
+    :param save_path: directory of a folder that can be saved to
     :return: None
     """
     while 1:
@@ -155,7 +129,33 @@ def get_user_save_path(data_path, *save_path):
     return folder_path
 
 
-# plots 
+def generate_midline_from_sinewave(cycles, amplitude, length_cm, phase_difference, frames, resolution):
+    """
+    Function creates midlines from a sine wave that match the 3D data structure of a midline for this application.
+    the x and y values for each sinewave are in an array and multiple sine waves are in the midline.
+    e.g. midline with: resolution = 200, 4 waves -> len(midline) = 200, len(midline[0]) = 4, midline[0][0] = [x ,y]
+    :param cycles: number of complete cycles
+    :param amplitude: max length in y and -y in cm
+    :param length_cm: total length of the sine wave in cm
+    :param phase_difference: phase difference between subsequent sine waves
+    :param frames: number of different sine waves in the midline
+    :param resolution: number of data points that describe a sine wave
+    :return: 3D array of each sine wave x and y position for each frame.
+    """
+    midline = [[[0 for _ in range(2)] for _ in range(frames)] for _ in range(resolution)]
+    x_values = np.linspace(0, length_cm, num=resolution)
+
+    phase = 0
+
+    for f in range(frames):
+        for r in range(resolution):
+            midline[r][f][0] = x_values[r]
+            midline[r][f][1] = np.sin((((x_values * cycles) / length_cm) * 2 * np.pi) + phase)[r] * amplitude
+        phase += phase_difference
+
+    return midline
+
+
 def plot_midline(midline, *frames):
     """
     Function that allows for the midline and selected frames to be plotted using matplotlib

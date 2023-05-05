@@ -3,12 +3,12 @@ import calculate_error as ce
 import copy
 
 
-def grow_segments(midline, error_threshold_area):
+def grow_segments(midline, error_threshold):
     """
     Growth method from Dr.Otar's paper. An increment is made and compared for area (error) for each frame.
     If the avg error is below the threshold, add an increment and compare avg max error.
     :param midline: the midline of the fish
-    :param error_threshold_area: the area between the midline and segment
+    :param error_threshold: the area between the midline and segment
     :return: array of where the joints should be along the midline
     """
     joints = [[0 for _ in range(3)] for _ in range(0)]
@@ -37,11 +37,11 @@ def grow_segments(midline, error_threshold_area):
 
         total_error /= len(midline[0])  # avg of error for that joint, for all frames.
 
-        if total_error < error_threshold_area:
+        if total_error < error_threshold:
             # print("ye: ", increments, " f: ", f, " error: ", total_error)
             increments += 1
 
-        elif total_error >= error_threshold_area:
+        elif total_error >= error_threshold:
             increments -= 1
 
             if increments <= joints[len(joints) - 1][2]:
@@ -59,12 +59,12 @@ def grow_segments(midline, error_threshold_area):
     return joints
 
 
-def grow_segments_binary_search(midline, error_threshold_area):
+def grow_segments_binary_search(midline, error_threshold):
     """
     Grows the segments but uses a binary search technique.
     Joints are compared from start to the end of the midline, and halved if max error is over threshold
     :param midline: the midline of the fish
-    :param error_threshold_area: the area between the midline and segment
+    :param error_threshold: the area between the midline and segment
     :return: array of where the joints should be along the midline
     """
     joints = [[0 for _ in range(3)] for _ in range(0)]
@@ -110,14 +110,14 @@ def grow_segments_binary_search(midline, error_threshold_area):
                 if end == len(midline) - 1:
                     avg_end_error += error
 
-                if error >= error_threshold_area:
+                if error >= error_threshold:
                     end = mid - 1
                     segment_end[2] = end
                     segment_end[1] = midline[segment_end[2]][f][1]
                     segment_end[0] = midline[segment_end[2]][f][0]
                     divisions += 1
-
-                elif error < error_threshold_area:
+            
+                elif error < error_threshold:
                     start = mid + 1
                     if start < len(midline):
                         segment_end[2] = start  # was int(midline_range / 2 ** divisions)
@@ -131,7 +131,7 @@ def grow_segments_binary_search(midline, error_threshold_area):
 
         # print("Adding joint:", joints[len(joints) - 1])
 
-        if (avg_end_error / len(midline[0])) < error_threshold_area:
+        if (avg_end_error / len(midline[0])) < error_threshold:
             # print("avg_end_error:", avg_end_error / len(midline[0]), " avg_joint:", avg_joint)
             completed = True
 
@@ -139,12 +139,12 @@ def grow_segments_binary_search(midline, error_threshold_area):
     return joints
 
 
-def grow_segments_binary_search_midpoint_only(midline, error_threshold_area):
+def grow_segments_binary_search_midpoint_only(midline, error_threshold):
     """
     Works like the binary search generation method but is greedy but
     only finds the error from one value (the middle value)
     :param midline: the midline of the fish
-    :param error_threshold_area: the area between the midline and segment
+    :param error_threshold: the area between the midline and segment
     :return: array of where the joints should be along the midline
     """
     joints = [[0 for _ in range(3)] for _ in range(0)]
@@ -191,14 +191,14 @@ def grow_segments_binary_search_midpoint_only(midline, error_threshold_area):
                 if end == len(midline) - 1:
                     avg_end_error += error
 
-                if error >= error_threshold_area:
+                if error >= error_threshold:
                     end = mid - 1
                     segment_end[2] = end  # was int(midline_range / 2 ** divisions)
                     segment_end[1] = midline[segment_end[2]][f][1]
                     segment_end[0] = midline[segment_end[2]][f][0]
                     divisions += 1
 
-                elif error < error_threshold_area:
+                elif error < error_threshold:
                     start = mid + 1
                     if start < len(midline):
                         segment_end[2] = start  # was int(midline_range / 2 ** divisions)
@@ -212,7 +212,7 @@ def grow_segments_binary_search_midpoint_only(midline, error_threshold_area):
 
         # print("Adding joint:", joints[len(joints) - 1])
 
-        if (avg_end_error / len(midline[0])) < error_threshold_area:
+        if (avg_end_error / len(midline[0])) < error_threshold:
             # print("avg_end_error:", avg_end_error / len(midline[0]), " avg_joint:", avg_joint)
             completed = True
     # joints.pop()
@@ -220,13 +220,13 @@ def grow_segments_binary_search_midpoint_only(midline, error_threshold_area):
     return joints
 
 
-def grow_segments_from_inflection(midline, error_threshold_area):
+def grow_segments_from_inflection(midline, error_threshold):
     """
     Finds a point with the highest gradient from current joint and tries
     to add a joint if the avg error for all frames is less than threshold.
     If the joint can't be added due to high error, try out previous midline points until the joint can be added
     :param midline: the midline of the fish
-    :param error_threshold_area: the area between the midline and segment
+    :param error_threshold: the area between the midline and segment
     :return: array of where the joints should be along the midline
     """
     joints = [[0 for _ in range(3)] for _ in range(0)]
@@ -294,7 +294,7 @@ def grow_segments_from_inflection(midline, error_threshold_area):
 
                 total_error /= len(midline[0])
 
-                if total_error < error_threshold_area:
+                if total_error < error_threshold:
                     joint_built = True
                     break
 

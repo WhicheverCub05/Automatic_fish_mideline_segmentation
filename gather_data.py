@@ -339,13 +339,14 @@ def compare_all_methods_linear_error_sinewave(save_dir):
                                        save_dir)
 
 
-def compare_linear_and_area_error(data_path, save_dir, *generation_methods):
+def compare_linear_and_area_error(data_path, save_dir, generation_method_area, generation_method_linear):
     """
     Function is used to compare the total error, time and number of joints
     with generation methods that use area and linear error thresholds. We use sinewave data and fish midline data
+    :param generation_method_area: the generation method that uses area in cm^2 as its threshold
+    :param generation_method_linear: the generation method that uses linear distance in cm as its error threshold
     :param data_path: directory to the data that the fish midlines are in
     :param save_dir: directory where the results of the data are saved to, as .csv files
-    :param generation_methods: an array of the generation methods that are compared to each other
     :return: None
     """
     all_midline_files = glob.glob(data_path + '/*.xls')
@@ -356,17 +357,20 @@ def compare_linear_and_area_error(data_path, save_dir, *generation_methods):
     csv_file_writer = csv.writer(csv_file)
 
     # compare joints and error for eel sine wave
-    eel_midline = mn.generate_midline_from_sinewave(1.7, 22, 110, (np.pi * 2 / 10), 10, 200)
+    # eel_midline = mn.generate_midline_from_sinewave(1.7, 22, 110, (np.pi * 2 / 10), 10, 200)
+
+    midline = mn.load_midline_data(all_midline_files[0])
+
+    print(f"using all_midline_files[0]: {os.path.basename(all_midline_files[0])}")
 
     error_threshold_area = 0
     error_threshold_linear = 0
-    csv_data = []
 
     column_labels = ['linear error threshold', 'area error threshold', '']
-    for g in range(len(generation_methods)):
-        column_labels.append(generation_methods[g].__name__ + " time")
-        column_labels.append(generation_methods[g].__name__ + " no. of joints")
-        column_labels.append(generation_methods[g].__name__ + " total area error")
+    for g in range(2):
+        column_labels.append("time")
+        column_labels.append("no. of joints")
+        column_labels.append("total area error")
         column_labels.append('')
 
     csv_file_writer.writerow(column_labels)
@@ -375,50 +379,39 @@ def compare_linear_and_area_error(data_path, save_dir, *generation_methods):
 
         csv_data = []
 
-        error_threshold = 0
-        error_threshold_linear += 0.5
-        error_threshold_area += 10
+        error_threshold_linear += 0.05
+        error_threshold_area += 0.2
+
+        error_threshold_linear = round(error_threshold_linear, 3)
+        error_threshold_area = round(error_threshold_area, 3)
 
         csv_data.append(error_threshold_linear)
         csv_data.append(error_threshold_area)
 
-        print(f"linear error threshold: {error_threshold_linear}, area error threshold: {error_threshold_area}")
+        time_start_area = time.perf_counter()
+        joints_area = generation_method_area(midline, error_threshold_area)
+        total_time_area = time.perf_counter() - time_start_area
+        total_error_area = ce.find_total_area_error(joints_area, midline)
 
-        for g in range(len(generation_methods)):
+        time_start_linear = time.perf_counter()
+        joints_linear = generation_method_linear(midline, error_threshold_linear)
+        total_time_linear = time.perf_counter() - time_start_linear
+        total_error_linear = ce.find_total_area_error(joints_linear, midline)
 
-            generation_method = generation_methods[g]
+        print(f"linear threshold: {error_threshold_linear}, area threshold: {error_threshold_area}. "
+              f"joints = L:{len(joints_linear)}, A:{len(joints_area)}")
 
-            if 'error_threshold_area' in (str(inspect.signature(generation_method))):
-                error_threshold = error_threshold_area
-            else:
-                error_threshold = error_threshold_linear
+        csv_data.append('')
+        csv_data.append(total_time_linear)
+        csv_data.append(len(joints_linear))
+        csv_data.append(total_error_linear)
 
-            time_start = time.perf_counter()
-            joints = generation_method(eel_midline, error_threshold)
-            total_time = time.perf_counter() - time_start
-            total_error = ce.find_total_error(joints, eel_midline)
-
-            csv_data.append('')
-            csv_data.append(total_time)
-            csv_data.append(len(joints))
-            csv_data.append(total_error[1])
+        csv_data.append('')
+        csv_data.append(total_time_area)
+        csv_data.append(len(joints_area))
+        csv_data.append(total_error_area)
 
         csv_file_writer.writerow(csv_data)
-
-    # compare fish data and see if number of joints is the same. also compare joint positions for a few sample fish.
-    # for a method, say generate_segments, compare variables from sinewaves like amplitude, cycles, resolution.
-
-    eel_joints_area = gm_a.grow_segments_binary_search(eel_midline, 65)
-    eel_joints_linear = gm_l.grow_segments_binary_search(eel_midline, 4)  # (a:65 and l:4) ratio is 16.5
-
-    total_error_area = ce.find_total_error(eel_joints_area, eel_midline)
-    total_error_linear = ce.find_total_error(eel_joints_linear, eel_midline)
-
-    print(f"eel joints area ({len(eel_joints_area)}):{eel_joints_area}")
-    print("eel_joints_area total: ", total_error_area)
-
-    print(f"eel joints linear ({len(eel_joints_linear)}):{eel_joints_linear}")
-    print("eel_joints_linear total: ", total_error_linear)
 
 
 def use_all_folder_data(generation_method, data_path, save_path, **parameters):
@@ -596,7 +589,10 @@ def compare_area_method_with_brute_force_joint_count(generation_method, error_th
 
         print(f"using file: {os.path.basename(midline_file)}")
 
-        generation_method_joints = generation_method(error_threshold_area=error_threshold, midline=midline)
+        generation_method_joints = generation_method(error_threshold=error_threshold, midline=midline)
+
+        print(f"File:{os.path.basename(midline_file)} ,number of joints:{len(generation_method_joints)}")
+
         brute_force_joints = gm_a.generate_segments_to_quantity(midline, len(generation_method_joints),
                                                                 resolution_division)
 
@@ -613,20 +609,11 @@ def gather_data():
     This Method is where I arrange which methods to run. This Function is then called in main.py
     :return: None
     """
-    eel_midline = mn.generate_midline_from_sinewave(1.7, 22, 110, (np.pi * 2 / 10), 10, 50)
+    eel_midline = mn.generate_midline_from_sinewave(1.7, 22, 110, (np.pi * 2 / 10), 10, 200)
 
-    # save_path = mn.set_data_folder() + "/results/"
+    data_path = mn.set_data_folder()
+    save_path = data_path + "/results/"
 
     # compare_method_sinewave_resolution(gm_l.grow_segments, 4, 30, 2030, 10, save_path)
     # compare_method_sinewave_resolution(gm_a.grow_segments, 65, 30, 2040, 10, save_path)
-
-    # joints = gm_a.generate_segments_to_max_area_error(eel_midline, 200)
-    # joints = gm_a.generate_segments_to_quantity(eel_midline, 3)
-    # print("final joints: ", joints)
-    # mn.plot_midline(eel_midline, 0)
-    # mn.joints_to_length(joints, 1)
-    # plt.show()
-
-    data_path = mn.set_data_folder()
-    save_dir = data_path + "/results/"
-    compare_area_method_with_brute_force_joint_count(gm_a.grow_segments, 150, data_path, save_dir, 2)
+    compare_area_method_with_brute_force_joint_count(gm_a.grow_segments, 2, data_path, save_path, 2)
