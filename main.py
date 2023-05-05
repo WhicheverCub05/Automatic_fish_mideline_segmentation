@@ -218,6 +218,7 @@ def joints_to_length(joints, *plot_on_first_frame):
         else:
             plt.scatter(joints[i + 1][0], 0, color='black', label=f'{joints[i + 1][2]} ({length_difference:.2f}cm)')
         # plt.annotate('(%d)' % joints[i + 1][2], (length, i % 2))
+        # plt.annotate('(%d)' % joints[i + 1][2], (length, i % 2))
         # plt.annotate('%d' % joints[i + 1][2], (joints[i + 1][0] + 0.1, joints[i + 1][1] + 0.05))
         plt.legend(loc="best")
     return segments
@@ -277,15 +278,15 @@ def pick_method_and_save_all(data_path, *save_path):
                     break
 
             if user_selection == 'sg':
-                gd.use_all_folder_data(gm_l.grow_segments, data_path, user_save_path, error_threshold=error_threshold)
+                gd.use_all_folder_data(gm_a.grow_segments, data_path, user_save_path, error_threshold=error_threshold)
             elif user_selection == 'sg_i':
-                gd.use_all_folder_data(gm_l.grow_segments_from_inflection, data_path, user_save_path,
+                gd.use_all_folder_data(gm_a.grow_segments_from_inflection, data_path, user_save_path,
                                        error_threshold=error_threshold)
             elif user_selection == 'sg_bs':
-                gd.use_all_folder_data(gm_l.grow_segments_binary_search, data_path, user_save_path,
+                gd.use_all_folder_data(gm_a.grow_segments_binary_search, data_path, user_save_path,
                                        error_threshold=error_threshold)
             elif user_selection == 'sg_bs_mp':
-                gd.use_all_folder_data(gm_l.grow_segments_binary_search_midpoint_only, data_path, user_save_path,
+                gd.use_all_folder_data(gm_a.grow_segments_binary_search_midpoint_only, data_path, user_save_path,
                                        error_threshold=error_threshold)
 
         elif user_selection == 'es' or user_selection == 'ds':
@@ -310,15 +311,16 @@ def pick_method_and_save_all(data_path, *save_path):
             while 1:
                 user_method = input("generation method (q:quit): ")
                 if user_method == "sg":
-                    gd.compare_method_error(gm_l.grow_segments, data_path, user_save_path)
+                    gd.compare_method_error(gm_a.grow_segments, 2, 40, 2, data_path, user_save_path)
                 elif user_method == "sg_bs":
-                    gd.compare_method_error(gm_l.grow_segments_binary_search, data_path, user_save_path)
+                    gd.compare_method_error(gm_a.grow_segments_binary_search, 2, 40, 2, data_path, user_save_path)
                 elif user_method == "sg_bs_mp":
-                    gd.compare_method_error(gm_l.grow_segments_binary_search_midpoint_only, data_path, user_save_path)
+                    gd.compare_method_error(gm_a.grow_segments_binary_search_midpoint_only, 2, 40, 2, data_path,
+                                            user_save_path)
                 elif user_method == "es":
-                    gd.compare_method_error(gm_l.create_equal_segments, data_path, user_save_path)
+                    gd.compare_method_error(gm_l.create_equal_segments, 2, 40, 2, data_path, user_save_path)
                 elif user_method == "ds":
-                    gd.compare_method_error(gm_l.create_diminishing_segments, data_path, user_save_path)
+                    gd.compare_method_error(gm_l.create_diminishing_segments, 2, 40, 2, data_path, user_save_path)
                 elif user_method == 'q':
                     break
                 else:
@@ -345,6 +347,5 @@ if __name__ == "__main__":
 
     # pick_method_and_save_all(data_path=directory)
 
-    gd.gather_data()
 
 

@@ -467,7 +467,7 @@ def use_all_folder_data(generation_method, data_path, save_path, **parameters):
         plt.cla()
 
 
-def compare_number_of_joints_fish_data(data_path, save_dir, *resolution_division):
+def compare_number_of_joints_brute_force_fish_data(data_path, save_dir, *resolution_division):
     """
     Compares method of generating joints by removing data points until targeted number of joints is achieved.
     Saves data like time and total area error to a .csv file

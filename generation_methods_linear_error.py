@@ -90,7 +90,6 @@ def grow_segments(midline, error_threshold):
         total_error /= len(midline[0])  # avg of error for that joint, for all frames.
 
         if total_error < error_threshold:
-            # print("ye: ", increments, " f: ", f, " error: ", total_error)
             increments += 1
 
         elif total_error >= error_threshold:
@@ -103,8 +102,6 @@ def grow_segments(midline, error_threshold):
             else:
                 joints.append([midline[increments][0][0],
                                midline[increments][0][1], increments])
-                # print("Adding joint: ", joints[len(joints) - 1])
-
         else:
             print("Houston, we have a problem")
 

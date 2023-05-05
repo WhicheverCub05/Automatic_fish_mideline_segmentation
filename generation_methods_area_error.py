@@ -14,8 +14,6 @@ def grow_segments(midline, error_threshold):
     joints = [[0 for _ in range(3)] for _ in range(0)]
     joints.append([midline[0][0][0], midline[0][0][1], 0])  # contains x, y, and increment
 
-    segment_beginning = [0, 0]
-    segment_end = [0, 0]
     increments = 2  # start at 2 as first increment is going to have 0 error
 
     while increments < len(midline):
@@ -24,13 +22,7 @@ def grow_segments(midline, error_threshold):
         for f in range(len(midline[0])):
             frame_error = 0
 
-            segment_beginning[0] = midline[joints[len(joints) - 1][2]][f][0]
-            segment_beginning[1] = midline[joints[len(joints) - 1][2]][f][1]
-
-            segment_end[0] = midline[increments][f][0]
-            segment_end[1] = midline[increments][f][1]
             # get error between joint and increments
-
             frame_error = ce.find_area_error(joints[len(joints) - 1][2], increments, f, midline)
 
             total_error += frame_error
@@ -45,14 +37,11 @@ def grow_segments(midline, error_threshold):
             increments -= 1
 
             if increments <= joints[len(joints) - 1][2]:
-                print("stuck on increment: ", increments, "error: ", total_error, "segment_beginning: ",
-                      segment_beginning, "segment_end: ", segment_end)
+                print(f"stuck on joint: {increments}")
                 break
             else:
                 joints.append([midline[increments][0][0],
                                midline[increments][0][1], increments])
-                # print("Adding joint: ", joints[len(joints) - 1])
-
         else:
             print("Houston, we have a problem")
 
@@ -129,13 +118,9 @@ def grow_segments_binary_search(midline, error_threshold):
 
         joints.append([midline[avg_joint][0][0], midline[avg_joint][0][1], avg_joint])
 
-        # print("Adding joint:", joints[len(joints) - 1])
-
         if (avg_end_error / len(midline[0])) < error_threshold:
-            # print("avg_end_error:", avg_end_error / len(midline[0]), " avg_joint:", avg_joint)
             completed = True
 
-    # joints.pop()
     return joints
 
 
@@ -239,11 +224,8 @@ def grow_segments_from_inflection(midline, error_threshold):
 
     while not completed:
         inflection_point = joints[len(joints) - 1][2] + 1
-        total_error = 0
-        tmp_error = 0
         avg_inflection_point_array = []
         for f in range(len(midline[0])):
-            frame_max_error = 0
             max_gradient = 0
             inflection_point = joints[len(joints) - 1][2] + 1
             segment_beginning[0] = midline[joints[len(joints) - 1][2]][f][0]
