@@ -14,12 +14,10 @@ import main as mn
 # import other libraries
 import numpy as np
 import matplotlib.pyplot as plt
-import csv
 import time
 import glob
 import os
 import csv
-import inspect
 
 
 def compare_method_sinewave_frequency(generation_method, error_threshold, cycles_min, cycles_max,
@@ -287,7 +285,7 @@ def compare_visual_sinewaves():
     Function is used to create multiple matplotlib graphs with the midline and joints created for it
     :return: None
     """
-    cycles = 1
+    cycles = 1.7
     amplitude = 2
     length = 110
     frames = 10
@@ -543,16 +541,6 @@ def compare_starting_point_grow_segments_area_fish_data(data_path, save_dir):
         csv_file_writer.writerow([os.path.basename(all_files[0]), error_threshold, len(joints), joints_total_error, len(joints_reversed),
                                   joints_reversed_total_error])
 
-        # mn.plot_midline(midline, 0)
-        # mn.joints_to_length(joints, 1)
-        # plt.show()
-        # plt.cla()
-
-        # mn.plot_midline(midline, 0)
-        # mn.joints_to_length(joints_reversed, 1)
-        # plt.show()
-        # plt.cla()
-
 
 def compare_area_method_with_brute_force_joint_count(generation_method, error_threshold, data_path, save_dir,
                                                      *resolution_division):
@@ -614,6 +602,4 @@ def gather_data():
     data_path = mn.set_data_folder()
     save_path = data_path + "/results/"
 
-    # compare_method_sinewave_resolution(gm_l.grow_segments, 4, 30, 2030, 10, save_path)
-    # compare_method_sinewave_resolution(gm_a.grow_segments, 65, 30, 2040, 10, save_path)
     compare_area_method_with_brute_force_joint_count(gm_a.grow_segments, 2, data_path, save_path, 2)

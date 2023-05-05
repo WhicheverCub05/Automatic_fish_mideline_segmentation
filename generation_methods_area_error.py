@@ -20,7 +20,6 @@ def grow_segments(midline, error_threshold):
         total_error = 0
 
         for f in range(len(midline[0])):
-            frame_error = 0
 
             # get error between joint and increments
             frame_error = ce.find_area_error(joints[len(joints) - 1][2], increments, f, midline)
@@ -353,8 +352,6 @@ def generate_segments_to_quantity(midline, max_number_of_joints, *resolution_div
         for j in range(len(midline)):
             joints.append([midline[j][0][0], midline[j][0][1], j])
 
-    total_area_error = 0
-
     print("error rn: ", ce.find_total_error(joints, midline)[1])
 
     while len(joints) > max_number_of_joints:
@@ -374,9 +371,5 @@ def generate_segments_to_quantity(midline, max_number_of_joints, *resolution_div
             del joints[lowest_joint_error_index]
         else:
             break
-
-        total_area_error = ce.find_total_error(joints, midline)[1]
-
-        # print(f"removing:{lowest_joint_error_index}, total_error:{total_area_error}, len(joints):{len(joints)}")
 
     return joints

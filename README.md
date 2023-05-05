@@ -1,33 +1,59 @@
 # Automatic_fish_mideline_segmentation
-This program aims to generate fish segments based on midline points which describe the way that the fish is curved using different techniques. 
-It can also be used to fit straight lines to data points.
 
-Data must be saved in the .xls format and graphs are saved as .svg files to retain their quality.
-Each .xls file in that data folder produces one graph using all the data points within that .xls file.
+Author: Alexandre Roque da Silva
+Date: 05/05/2023
+
+This program uses different techniques to generate joints for robotic fish using real fish data.
+
+The program can also be used to approximate any series of waves to a single set of points along the series' data which area the joints.
+
+Running a generation method for a midline produces a single graph per midline file in the .svg format.
+
+Midline data must be saved in the .xls format. 
 
 data format in a table is:
 
-                   data set. each: [x, y]
-data_points: |   x   |   y   |   x   |   y   | ...
-             |   x   |   y   |   x   |   y   | 
-                            ...
+                   data set. each:  |frame n|frame  | ...
+                                    | x | y | x | y |
+                                    | x | y | x | y |
+                                    | x | y | x | y |
+                                     ...
 
 A midline must have 2 columns each, which has a x and y value (int or float) on each column. 
 Each row describes a single point in the data. 
 There is no known limit to number of columns or rows.
 
 
-Modules used:
-- math,
+Dependencies used:
+- math
 - matplotlib
 - pandas
 - numpy
-- os
-- sys
 - glob
 - csv
 
 Arguments that can be passed:
 location of fish midline data, location to save graphical data
 
+The program is divided into 6 files:
+- calculate_error.py : 
+  - contains methods to calculate error between joint and midline
+  
 
+- gather_data.py :
+  - used to gather data
+
+
+- demonstration.py :
+  - used to demonstrate the growth method
+
+
+- generation_methods_linear_error.py:
+  - contains generation methods that use linear error 
+
+
+- generation_methods_area_error.py:
+  - contains generation methods that use area error 
+
+- main.py:
+  - contains the functions load data, and CLI

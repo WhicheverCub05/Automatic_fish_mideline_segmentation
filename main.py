@@ -334,18 +334,8 @@ def pick_method_and_save_all(data_path, *save_path):
 
 # run code only when called as a script
 if __name__ == "__main__":
-    # save_dir = set_data_folder() + "/results/"
-    # gd.compare_all_methods_linear_error_sinewave(save_dir)
-    # directory = set_data_folder()
-    """
-    gd.compare_linear_and_area_error(directory, save_dir, gm_l.grow_segments, gm_a.grow_segments,
-                                     gm_l.grow_segments_binary_search, gm_a.grow_segments_binary_search,
-                                     gm_l.grow_segments_binary_search_midpoint_only,
-                                     gm_a.grow_segments_binary_search_midpoint_only,
-                                     gm_l.grow_segments_from_inflection, gm_a.grow_segments_from_inflection)
-    """
-
-    # pick_method_and_save_all(data_path=directory)
+    directory = set_data_folder()
+    pick_method_and_save_all(data_path=directory)
 
 
 
