@@ -3,7 +3,7 @@ This module has functions to gather data to .csv files. either of these function
 """
 
 __author__ = "Alex R.d Silva"
-__version__ = '0.1'
+__version__ = '1.0'
 
 # importing local project libraries
 import generation_methods_linear_error as gm_l
@@ -453,7 +453,7 @@ def use_all_folder_data(generation_method, data_path, save_path, **parameters):
         plt.xlabel('x')
         plt.ylabel('y')
 
-        filename = save_path + "/" + generation_method.__name__ + str(parameters) + \
+        filename = save_path + "/" + generation_method.__name__ + str(parameters).replace(':', '_') + \
                    all_files[f][len(all_files[f]) - 30:len(all_files[f]) - 15:1] + '.svg'
         try:
             plt.savefig(filename)

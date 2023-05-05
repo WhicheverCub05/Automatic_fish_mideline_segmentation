@@ -1,4 +1,10 @@
-# file contains methods of creating segments
+"""
+contains generation methods that use linear error
+"""
+
+__author__ = "Alex R.d Silva"
+__version__ = '1.4'
+
 import calculate_error as ce
 
 

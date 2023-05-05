@@ -1,3 +1,10 @@
+"""
+contains methods to calculate error between joint and midline
+"""
+
+__author__ = "Alex R.d Silva"
+__version__ = '1.2'
+
 # file contains methods calculating error
 import numpy as np
 import copy

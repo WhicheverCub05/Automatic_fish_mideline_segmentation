@@ -1,4 +1,10 @@
-# file contains methods of creating segments using area
+"""
+contains generation methods that use area error
+"""
+
+__author__ = "Alex R.d Silva"
+__version__ = '1.1'
+
 import calculate_error as ce
 import copy
 
