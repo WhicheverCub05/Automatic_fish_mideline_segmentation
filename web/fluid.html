@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<!-- Fluid simulation page served by web_viewer.py at /fluid: animates the LBM
+     fluid sim of a generated joint configuration (web/js/fluid.js). Two
+     movement modes: 'tethered' (head oscillated in a current) and 'swim'
+     (free swimming - the joints are actuated with a traveling wave like a
+     robotic fish and swimming performance metrics are reported). The compare
+     panel runs several generation algorithms through the same free-swim
+     simulation and ranks their performance. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fluid Simulation — Fish Midline Segmentation Viewer</title>
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem("fishseg-theme");
+      if (!t) t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      document.documentElement.dataset.theme = t;
+    } catch (e) { document.documentElement.dataset.theme = "light"; }
+  })();
+</script>
+<style>
+  :root {
+    --bg:#f6f8fa; --panel:#fff; --border:#d7dde3; --text:#222; --muted:#667;
+    --blue:#1f77b4;
+    --input:#fff; --chip:#f0f3f6; --chipHover:#e0e7ed; --hover:#eef2f5; --chartBg:#fff;
+  }
+  :root[data-theme="dark"] {
+    --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3; --muted:#8b949e;
+    --blue:#388bfd;
+    --input:#21262d; --chip:#21262d; --chipHover:#30363d; --hover:#21262d; --chartBg:#0d1117;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.4 system-ui,Segoe UI,Arial,sans-serif; background:var(--bg); color:var(--text); }
+  header { background:var(--panel); border-bottom:1px solid var(--border); padding:10px 14px; }
+  h1 { font-size:16px; margin:0 0 8px; }
+  h1 a { font-size:12px; font-weight:400; color:var(--blue); text-decoration:none; margin-left:10px; }
+  .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .row label { color:var(--muted); font-size:12px; }
+  input,select,button { font:inherit; padding:4px 8px; border:1px solid var(--border); border-radius:4px; background:var(--input); color:var(--text); }
+  input[type=text] { width:300px; }
+  input[type=range] { width:130px; vertical-align:middle; }
+  button { cursor:pointer; }
+  button:hover { background:var(--hover); }
+  button.primary { background:var(--blue); color:#fff; border-color:var(--blue); }
+  button.primary:hover { background:#1a659c; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .chip { cursor:pointer; font-size:12px; padding:2px 8px; border:1px solid var(--border); border-radius:10px; background:var(--chip); }
+  .chip:hover { background:var(--chipHover); }
+  #status { padding:4px 14px; font-size:12px; color:var(--muted); }
+  #progressWrap { display:flex; gap:8px; align-items:center; padding:0 14px 8px; font-size:12px; color:var(--muted); }
+  .progressBar { height:6px; background:#e0e7ed; border-radius:3px; flex:0 0 340px; overflow:hidden; }
+  #progressFill { height:100%; width:0; background:var(--blue); transition:width .2s; }
+  main { padding:12px 14px; }
+  .wrap { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-start; }
+  .simWrap { flex:1 1 620px; min-width:0; }
+  #sim { width:100%; height:420px; display:block; background:#10141a; border:1px solid var(--border); border-radius:6px; }
+  .side { flex:0 0 280px; display:flex; flex-direction:column; gap:10px; }
+  .panel { background:var(--panel); border:1px solid var(--border); border-radius:4px; padding:8px; }
+  .panel h2 { font-size:12px; margin:0 0 6px; color:var(--muted); font-weight:600; }
+  .panel h3 { font-size:12px; margin:10px 0 6px; color:var(--muted); font-weight:600; }
+  #diag div { display:flex; justify-content:space-between; padding:2px 0; font-size:12px; }
+  #diag div.best { color:#1a7f37; font-weight:600; }
+  #flowChart { width:100%; height:90px; display:block; background:var(--chartBg); }
+  .controls { display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  .controls label { color:var(--muted); font-size:12px; }
+  .resBtn { padding:4px 10px; border:1px solid var(--border); border-radius:4px; background:#fff; cursor:pointer; font-size:12px; }
+  .resBtn:hover { background:#eef2f5; }
+  .resBtn.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .resBtn.active:hover { background:#1a659c; }
+  .legend { display:flex; gap:14px; font-size:11px; color:var(--muted); margin-top:6px; flex-wrap:wrap; }
+  .legend span { display:inline-flex; align-items:center; gap:5px; }
+  .swatch { width:16px; height:3px; border-radius:2px; }
+  .dot { width:8px; height:8px; border-radius:50%; }
+
+  /* compare panel */
+  #comparePanel { margin-top:14px; }
+  #comparePanel .hint { font-size:12px; color:var(--muted); margin:0 0 8px; }
+  #methodList { display:flex; flex-wrap:wrap; gap:6px 12px; margin-bottom:8px; }
+  #methodList .cmpMethod { font-size:12px; display:inline-flex; align-items:center; gap:4px; }
+  #compareStatus { font-size:12px; color:var(--muted); }
+  .compareGrid { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+  .compareGrid .panel { flex:1 1 300px; min-width:0; }
+  .compareGrid canvas { width:100%; height:130px; display:block; background:var(--chartBg); }
+  #cmpTable { overflow-x:auto; font-size:12px; }
+  #cmpTable table { border-collapse:collapse; width:100%; }
+  #cmpTable th { color:var(--muted); font-weight:600; text-align:right; padding:3px 6px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  #cmpTable th:first-child, #cmpTable td:first-child { text-align:left; }
+  #cmpTable td { padding:3px 6px; text-align:right; border-bottom:1px solid #eef1f4; white-space:nowrap; }
+  #cmpTable td.best { color:#1a7f37; font-weight:600; }
+  #cmpTable td.err { color:#b23; }
+  .runGrid { display:flex; flex-wrap:wrap; gap:10px; margin-top:8px; }
+  .runCard { border:1px solid var(--border); border-radius:4px; background:var(--panel); cursor:pointer; padding:4px; }
+  .runCard:hover { border-color:var(--blue); }
+  .runCard.selected { border-color:var(--blue); box-shadow:0 0 0 2px rgba(31,119,180,.35); }
+  .runCard canvas { width:170px; height:96px; display:block; background:#10141a; border-radius:3px; }
+  .runCard .runLabel { font-size:11px; padding:3px 2px 0; color:var(--muted); }
+  .runCard .runStats { font-size:10px; padding:0 2px 3px; color:var(--text); }
+  .runLegend { display:flex; flex-wrap:wrap; gap:10px; font-size:11px; color:var(--muted); margin-top:6px; }
+  .runLegend span { display:inline-flex; align-items:center; gap:4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fluid Simulation<a href="/">&#8592; main viewer</a><button id="themeToggle" title="toggle dark / light mode" style="float:right;">Dark</button></h1>
+  <div class="row">
+    <label>data folder</label>
+    <input type="text" id="folder" placeholder="path to folder with .xls / .csv" title="folder containing the .xls / .csv tracking data">
+    <button id="btnFolder" title="load the file list for the folder path above">Load folder</button>
+    <label>file</label>
+    <select id="file" title="data file to build the fish body from"></select>
+    <label>algorithm</label>
+    <select id="method" title="joint-generation algorithm that defines the fish body"></select>
+    <label id="paramLabel">threshold</label>
+    <input type="range" id="param" min="0.05" max="20" step="0.05" value="0.5"
+           title="generation method parameter - error threshold (cm) for error-based methods or segment count for count-based methods">
+    <span id="paramVal">0.5</span>
+    <label>movement</label>
+    <select id="simMode" title="tethered: head oscillated in a current / swim: joints actuated with a traveling wave (free swimming)">
+      <option value="tethered">tethered (head oscillation)</option>
+      <option value="swim">free swim (traveling wave)</option>
+    </select>
+    <label>flow speed</label>
+    <input type="range" id="flow" min="0" max="0.15" step="0.001" value="0.035"
+           title="background flow speed (cells/step); 0 = still water, the natural default for swim-mode propulsion tests">
+    <span id="flowVal">0.035</span>
+    <label id="ampLabel">head amp</label>
+    <input type="range" id="amp" min="0" max="40" step="0.1" value="2"
+           title="oscillation amplitude in lattice cells - head amplitude (tethered) or tail-beat lateral amplitude (swim)">
+    <span id="ampVal">2.0</span>
+    <label>wave freq</label>
+    <input type="range" id="freq" min="0" max="1000" step="1" value="602"
+           title="log-scale slider (0.0005 - 0.05 cycles/step); the wave frequency of the tail beat">
+    <input type="text" id="freqVal" size="7" value="0.008"
+           title="type an exact frequency in cycles/step">
+    <label id="cyclesLabel" style="display:none;">wave cycles</label>
+    <input type="range" id="cycles" min="0.4" max="10" step="0.1" value="1" style="display:none;"
+           title="traveling-wave cycles along the body length (swim mode)">
+    <span id="cyclesVal" style="display:none;">1.0</span>
+    <label>steps</label>
+    <input type="range" id="steps" min="100" max="2400" step="100" value="600"
+           title="number of lattice-Boltzmann simulation steps (higher = longer run, smoother statistics)">
+    <span id="stepsVal">600</span>
+    <label>resolution</label>
+    <span class="resBar" id="resBar">
+      <button id="resLow" class="resBtn active" title="260x160 lattice (fast)">low</button>
+      <button id="resMed" class="resBtn" title="320x200 lattice">medium</button>
+      <button id="resHigh" class="resBtn" title="400x240 lattice">high</button>
+      <button id="resMax" class="resBtn" title="800x480 lattice (slowest, finest)">max</button>
+    </span>
+    <button id="run" class="primary" title="run the fluid simulation for the selected file / method / parameters">Run simulation</button>
+  </div>
+  <div class="chips" id="dirs"></div>
+</header>
+<div id="status"></div>
+<div id="progressWrap" style="display:none;">
+  <div class="progressBar"><div id="progressFill"></div></div>
+  <span id="progressMsg"></span>
+</div>
+<main>
+  <div class="wrap">
+    <div class="simWrap">
+      <canvas id="sim"></canvas>
+      <div class="legend">
+        <span><span class="swatch" style="background:#ff4d4d"></span>deformed body</span>
+        <span><span class="swatch" style="background:rgba(255,255,255,.5)"></span>generated segments (rest)</span>
+        <span><span class="swatch" style="background:#35e0e0"></span>commanded wave (swim)</span>
+        <span><span class="dot" style="background:#2ee62e"></span>joints</span>
+        <span><span class="dot" style="background:#ffb733"></span>head</span>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel"><h2>Diagnostics</h2><div id="diag"></div></div>
+      <div class="panel"><h2>Measured flow speed</h2><canvas id="flowChart"></canvas></div>
+    </div>
+  </div>
+  <div class="controls">
+    <button id="play" title="play / pause the simulation playback">Play</button>
+    <label><input type="checkbox" id="loop" title="checked: loop from the end to the start / unchecked: play forward then rewind"> loop</label>
+    <label>frame</label>
+    <input type="range" id="frame" min="0" max="0" value="0" title="scrub through the recorded simulation frames">
+    <span id="frameVal">0</span>
+  </div>
+
+  <div class="panel" id="comparePanel">
+    <h2>Compare joint configurations (free swim)</h2>
+    <p class="hint">Runs every ticked algorithm through the SAME free-swimming simulation (traveling-wave
+    joint actuation) and ranks the resulting swimming performance - speed, thrust, efficiency, cost,
+    Strouhal number, tail amplitude and wave-tracking error. The flow slider acts as a background
+    current (0 = still water, the natural default for propulsion tests). Click a run card to inspect
+    it in the main viewer. Brute-force methods are slow and off by default.</p>
+    <div id="methodList"></div>
+    <div class="row">
+      <label>threshold (error-based)</label>
+      <input type="range" id="cmpThreshold" min="0.05" max="20" step="0.05" value="0.5"
+             title="error threshold (cm) shared by all error-based methods in the comparison">
+      <span id="cmpThresholdVal">0.5</span>
+      <label>segments (count-based)</label>
+      <input type="range" id="cmpSegments" min="2" max="40" step="1" value="10"
+             title="segment count shared by all count-based methods in the comparison">
+      <span id="cmpSegmentsVal">10</span>
+      <button id="btnCompare" class="primary" title="run every ticked algorithm through the same free-swim simulation and rank performance">Compare now</button>
+      <span id="compareStatus"></span>
+    </div>
+    <div class="compareGrid">
+      <div class="panel"><h2>swimming speed vs time</h2><canvas id="cmpSpeed"></canvas></div>
+      <div class="panel"><h2>thrust vs time</h2><canvas id="cmpThrust"></canvas></div>
+    </div>
+    <div class="panel"><h2>Results (best value per column highlighted)</h2><div id="cmpTable"></div></div>
+    <div class="runLegend" id="runLegend"></div>
+    <div class="runGrid" id="cmpRuns"></div>
+  </div>
+</main>
+
+<script type="module">
+import "./js/fluid.js";
+</script>
+</body>
+</html>

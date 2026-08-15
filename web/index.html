@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<!-- Fish Midline Segmentation Viewer: interactive canvas dashboard served by
+     web_viewer.py at /. Scripts live in web/js/ (app.js + shared modules). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fish Midline Segmentation Viewer</title>
+<script>
+  /* Apply the saved theme before first paint (no flash); falls back to the
+     operating system preference. Shared by all pages via localStorage. */
+  (function () {
+    try {
+      var t = localStorage.getItem("fishseg-theme");
+      if (!t) t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      document.documentElement.dataset.theme = t;
+    } catch (e) { document.documentElement.dataset.theme = "light"; }
+  })();
+</script>
+<style>
+  :root {
+    --bg:#f6f8fa; --panel:#fff; --border:#d7dde3; --text:#222; --muted:#667;
+    --blue:#1f77b4; --red:#d62728; --green:#2ca02c; --orange:#ff7f0e;
+    --input:#fff; --panel2:#fafbfc; --chip:#f0f3f6; --chipHover:#e0e7ed;
+    --hover:#eef2f5; --linkedBg:#dcebf7;
+  }
+  :root[data-theme="dark"] {
+    --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3; --muted:#8b949e;
+    --blue:#388bfd; --red:#f85149; --green:#3fb950; --orange:#d29922;
+    --input:#21262d; --panel2:#1c2128; --chip:#21262d; --chipHover:#30363d;
+    --hover:#21262d; --linkedBg:#1f2d3d;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.4 system-ui,Segoe UI,Arial,sans-serif; background:var(--bg); color:var(--text); }
+  header { background:var(--panel); border-bottom:1px solid var(--border); padding:10px 14px; }
+  h1 { font-size:16px; margin:0 0 8px; }
+  .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .row label { color:var(--muted); font-size:12px; }
+  input,select,button { font:inherit; padding:4px 8px; border:1px solid var(--border); border-radius:4px; background:var(--input); color:var(--text); }
+  input[type=text] { width:300px; }
+  input[type=range] { width:130px; vertical-align:middle; }
+  button { cursor:pointer; }
+  button:hover { background:var(--hover); }
+  button.primary { background:var(--blue); color:#fff; border-color:var(--blue); }
+  button.primary:hover { background:#1a659c; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .chip { cursor:pointer; font-size:12px; padding:2px 8px; border:1px solid var(--border); border-radius:10px; background:var(--chip); }
+  .chip:hover { background:var(--chipHover); }
+  #status { padding:4px 14px; font-size:12px; color:var(--muted); }
+
+  #deck { display:flex; flex-wrap:wrap; gap:12px; padding:12px 14px; align-items:flex-start; }
+  .empty { color:var(--muted); padding:40px 0; text-align:center; width:100%; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:10px;
+          flex:1 1 460px; max-width:100%; min-width:340px; }
+  .cardHead { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+  .cardTitle { font-weight:600; font-size:13px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cardMeta { color:var(--muted); font-size:12px; }
+  .remove { cursor:pointer; line-height:1; padding:2px 7px; }
+  .plotWrap { position:relative; }
+  .card .cv { width:100%; height:280px; display:block; cursor:crosshair; }
+  .tip { position:absolute; display:none; pointer-events:none; background:rgba(20,22,26,.9); color:#fff;
+         font-size:12px; padding:5px 8px; border-radius:4px; white-space:pre; z-index:5; }
+  .cardLog { font-size:12px; color:var(--muted); padding:4px 2px 2px; min-height:18px;
+             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cardControls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:6px 0; font-size:12px; }
+  .cardControls label { color:var(--muted); font-size:12px; }
+  .v { display:inline-flex; align-items:center; gap:3px; }
+  .linkBtn { cursor:pointer; background:none; border:none; padding:2px; line-height:0;
+             color:#9aa3ab; border-radius:4px; display:inline-flex; align-items:center; }
+  .linkBtn:hover { color:var(--muted); background:var(--hover); }
+  .linkBtn.linked { color:var(--blue); background:var(--linkedBg); }
+  .linkAll { cursor:pointer; font-size:11px; padding:2px 6px; }
+  .masterSwitch { cursor:pointer; background:none; border:none; padding:2px; line-height:0;
+                  border-radius:4px; color:#f5a623; display:inline-flex; align-items:center; }
+  .masterSwitch:hover { background:var(--hover); }
+  .masterSwitch.off { color:#c3c9d0; }
+  .modeBtn.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .cardBody { display:flex; flex-direction:column; gap:8px; }
+  .row2 { display:flex; gap:8px; align-items:stretch; }
+  .statsPanel { flex:1 1 auto; min-width:0; }
+  .errPanel { flex:0 0 170px; display:flex; flex-direction:column; }
+  .panel { background:var(--panel2); border:1px solid var(--border); border-radius:4px; padding:8px; }
+  .panel h2 { font-size:12px; margin:0 0 6px; }
+  .stats div { display:flex; justify-content:space-between; padding:2px 0; font-size:12px; }
+  .stats b { font-weight:600; }
+  .card .errCv { width:100%; height:210px; display:block; cursor:pointer; }
+  #seglen { font-size:11px; }
+  .segSummary { color:var(--muted); margin-bottom:4px; }
+  .segTable { max-height:120px; overflow-y:auto; }
+
+  #master { position:fixed; top:12px; right:12px; width:320px; background:var(--panel); border:1px solid var(--border);
+            border-radius:6px; box-shadow:0 4px 14px rgba(0,0,0,.35); z-index:50; }
+  #master.hidden { display:none; }
+  .masterHead { cursor:move; background:var(--hover); padding:6px 10px; font-weight:600; font-size:12px;
+                border-bottom:1px solid var(--border); user-select:none; }
+  .masterBody { padding:8px; display:flex; flex-direction:column; gap:8px; }
+  .mRow { display:flex; gap:6px; align-items:center; font-size:12px; }
+  .mRow.hiddenRow { display:none; }
+  .mRow label { width:78px; color:var(--muted); flex:0 0 78px; }
+  .mRow .mSlider { flex:1; }
+  .mRow .mNum { width:62px; }
+  .mRow select { flex:1; }
+  #fluidLink { text-decoration:none; color:var(--text); border:1px solid var(--border);
+               border-radius:4px; padding:4px 8px; background:var(--input); font:inherit; }
+  #fluidLink:hover { background:var(--hover); }
+
+  #compare { background:var(--panel); border-bottom:1px solid var(--border); padding:8px 14px; }
+  #compare.hidden { display:none; }
+  .cmpHead { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .cmpHead h2 { font-size:12px; margin:0; flex:1; }
+  .cmpRow { display:flex; flex-wrap:wrap; gap:10px; }
+  .cmpBox { flex:1 1 190px; min-width:170px; background:var(--panel2); border:1px solid var(--border); border-radius:4px; padding:6px; }
+  .cmpBox h2 { font-size:11px; margin:0 0 4px; color:var(--muted); font-weight:600; }
+  .cmpCv { width:100%; height:110px; display:block; }
+  .cmpLegend { display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:6px; font-size:11px; color:var(--muted); }
+  .cmpLegend span { display:inline-flex; align-items:center; gap:5px; }
+  .cmpDot { width:9px; height:9px; border-radius:50%; }
+  .cmpHint { font-size:11px; color:var(--muted); }
+  .cmpHead button { font-size:11px; padding:2px 8px; }
+  .errMetric { float:right; font-size:11px; padding:1px 4px; }
+  .exportBtn { float:right; font-size:11px; padding:1px 6px; }
+  .pngBtn { font-size:11px; padding:2px 6px; }
+  .simBtn { font-size:11px; padding:2px 6px; color:var(--blue); border-color:var(--blue); }
+  .seglenTabs { margin-left:8px; }
+  .seglenMode { font-size:11px; padding:1px 6px; }
+  .seglenMode.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .segHmCv { width:100%; height:120px; display:block; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fish Midline Segmentation Viewer</h1>
+  <div class="row">
+    <label>data folder</label>
+    <input type="text" id="folder" placeholder="path to folder with .xls / .csv" title="folder containing the .xls / .csv tracking data">
+    <button id="btnFolder" title="load the file list for the folder path above">Load folder</button>
+    <label>file</label>
+    <select id="file" title="data file to add as a new view"></select>
+    <button id="addCard" class="primary" title="add a new viewer card for the selected file">+ Add view</button>
+    <button id="btnCompare" title="toggle the compare panel (error / time / joints curves across views)">Compare results</button>
+    <button id="saveSession" title="save the current viewer state (cards, links, settings) to a session">Save session</button>
+    <select id="sessionList" title="saved session to restore"></select>
+    <button id="loadSession" title="restore a previously saved session">Load session</button>
+    <a id="fluidLink" href="/fluid" title="run generated segments through the fluid simulation">Fluid sim</a>
+    <button id="themeToggle" title="toggle dark / light mode">Dark</button>
+  </div>
+  <div class="chips" id="dirs"></div>
+</header>
+<div id="compare" class="hidden">
+  <div class="cmpHead">
+    <h2>Compare results across views</h2>
+    <span class="cmpHint">one line per view &middot; x = parameter (threshold cm&sup2; / segment count) &middot; move sliders to grow curves</span>
+    <button id="cmpReset" title="clear all collected comparison curves">Reset curves</button>
+    <button id="cmpExport" title="download collected comparison results as CSV">Export CSV</button>
+  </div>
+  <div class="cmpRow">
+    <div class="cmpBox"><h2>avg linear error</h2><canvas class="cmpCv" data-metric="linear"></canvas></div>
+    <div class="cmpBox"><h2>avg area error</h2><canvas class="cmpCv" data-metric="area"></canvas></div>
+    <div class="cmpBox"><h2>generation time</h2><canvas class="cmpCv" data-metric="time"></canvas></div>
+    <div class="cmpBox"><h2>joints</h2><canvas class="cmpCv" data-metric="joints"></canvas></div>
+  </div>
+  <div class="cmpLegend"></div>
+</div>
+<div id="status"></div>
+<main id="deck">
+  <div class="empty">Select a file above and click &quot;+ Add view&quot; to start exploring.</div>
+</main>
+
+<div id="master" class="hidden">
+  <div class="masterHead">Link controls (drag me)</div>
+  <div class="masterBody">
+    <div class="mRow hiddenRow" id="mRow-frame">
+      <label>frame</label>
+      <input type="range" class="mSlider" data-var="frame" min="0" max="0" value="0" title="linked frame / time step across all linked cards">
+      <input type="number" class="mNum" data-var="frame" value="0" title="type an exact linked frame">
+    </div>
+    <div class="mRow hiddenRow" id="mRow-threshold">
+      <label>threshold</label>
+      <input type="range" class="mSlider" data-var="threshold" min="0.05" max="20" step="0.05" value="0.5" title="linked error threshold (cm) across all linked cards">
+      <input type="number" class="mNum" data-var="threshold" step="0.05" value="0.5" title="type an exact linked threshold">
+    </div>
+    <div class="mRow hiddenRow" id="mRow-segments">
+      <label>segments</label>
+      <input type="range" class="mSlider" data-var="segments" min="2" max="40" step="1" value="10" title="linked number of joint segments across all linked cards">
+      <input type="number" class="mNum" data-var="segments" step="1" value="10" title="type an exact linked segment count">
+    </div>
+    <div class="mRow hiddenRow" id="mRow-data">
+      <label>data source</label>
+      <select class="mFile" data-var="data" title="linked data file across all linked cards"></select>
+    </div>
+    <div class="mRow hiddenRow" id="mRow-play">
+      <label>play</label>
+      <button class="mPlayBtn" data-var="play" title="play / pause the animation on all play-linked cards">Play all</button>
+    </div>
+    <div class="mRow hiddenRow" id="mRow-method">
+      <label>algorithm</label>
+      <select class="mMethod" data-var="method" title="linked generation algorithm across all linked cards"></select>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import "./js/app.js";
+</script>
+</body>
+</html>

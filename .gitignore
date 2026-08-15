@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+results/
+sessions/
+*.log
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# large tracking data + source clips: keep out of the repo (see .gitattributes)
+Sturgeon from Elsa and Ted/
+*.avi

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo \"nf\" | python main.py . results 2>&1 | head -30)",
+      "Bash(printf \"sg\\\\n0.3\\\\nq\\\\n\" | python main.py . results 2>&1 | head -30)",
+      "Bash(printf \"sg_bs_mp\\\\n0.3\\\\nq\\\\n\" | python main.py . results 2>&1 | head -30)",
+      "Bash(printf \"es\\\\n10\\\\nq\\\\n\" | python main.py . results 2>&1 | head -30)",
+      "Bash(printf \"ds\\\\n10\\\\nq\\\\n\" | python main.py . results 2>&1 | head -30)"
+    ]
+  }
+}
