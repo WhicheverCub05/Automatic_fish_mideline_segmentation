@@ -1,5 +1,7 @@
 # Automatic Fish Midline Segmentation
 
+This is a vibe coded branch of the original Automatic Fish Midline Segmentation, with the difference being an addition of web interface to visualize and compare data. Also includes a new fluid simulation to test and measure swimming effectiveness of generated midlines. Models used: deepseek v4 flash / deepseek v4 pro
+
 > **For contributors / agents**: `AGENT_README.md` is the authoritative technical reference (data model, architecture, web viewer internals, fluid-sim stability tuning). This README is the user-facing overview.
 
 Generates **joints** (straight segments) for robotic fish from real or synthetic **fish midlines** — curved body shapes captured over time. A single joint configuration approximates every frame of a midline within an error threshold, which is the segmentation a robotic fish would need.
